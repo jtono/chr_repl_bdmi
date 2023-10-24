@@ -1,7 +1,191 @@
-#setwd("Documents/GreigLabPDoc/BDM_Mapping/Chr_Replacement/bioinformatics/")
-#install.packages("reshape")
 library(reshape)
 is.sorted = Negate(is.unsorted)
+
+######load in files######
+#load in cer coverage
+cer <- read.table("coverage/cer.coverage",header=FALSE, sep="\t", na.strings="NA", dec=".", strip.white=TRUE)
+# renames the header
+cer <- rename(cer, c(V1="Chr", V2="locus", V3="depth"))
+
+#load in IXpar coverage
+IXpar <- read.table("coverage/IXpar.coverage",header=FALSE, sep="\t", na.strings="NA", dec=".", strip.white=TRUE)
+# renames the header
+IXpar <- rename(IXpar, c(V1="Chr", V2="locus", V3="depth"))
+
+#load in gene files
+genes.c <- read.csv("W303.genes.csv", head=TRUE)
+genes.p <- read.csv("N17.genes.csv", head=TRUE)
+
+#########check for region A - chr9########
+#pull out only chr of interest
+#'for A - chr9
+#'do by species
+cer9.c <- subset(cer, Chr=="W303.chr09")
+cer9.p <- subset(cer, Chr=="N_17.chr09")
+IXpar9.c <- subset(IXpar, Chr=="W303.chr09")
+IXpar9.p <- subset(IXpar, Chr=="N_17.chr09")
+
+#limit to only genes on chr interested in
+genes9.c <- subset(genes.c, seqid=="chr09")
+genes9.p <- subset(genes.p, seqid=="chr09")
+
+
+#find which genes in both and in same order
+c.geneind9 <-c()
+for (i in 1:length(genes9.c$ID)){
+  c.geneind9 <- c(c.geneind9, which(genes9.c$ID%in%genes9.p$ID[i]))
+}
+
+#in order
+is.sorted(c.geneind9)
+
+#make n17 (par) equivalent
+p.geneind9 <- c()
+for (i in 1:length(c.geneind9)){
+  id <- as.character(genes9.c$ID[c.geneind9[i]])
+  p.geneind9 <- c(p.geneind9, which(genes9.p$ID==id))
+}
+#in order
+is.sorted(p.geneind9)
+
+#pull out only genes that are in both
+genes.c.both9 <- genes9.c[c.geneind9,]
+genes.p.both9 <- genes9.p[p.geneind9,]
+
+#make data frame with genes and between genes regions
+ID <- 1
+start.c <- 1
+end.c <- c()
+start.p <- 1
+end.p <- c()
+for (i in 1:length(genes.c.both9$X)){
+  ID <- c(ID, as.character(genes.c.both9$ID[i]), i+1)
+  start.c <- c(start.c, genes.c.both9$start[i], (genes.c.both9$end[i]+1))
+  end.c <- c(end.c, (genes.c.both9$start[i]-1), genes.c.both9$end[i])
+  start.p <- c(start.p, genes.p.both9$start[i], (genes.p.both9$end[i]+1))
+  end.p <- c(end.p, (genes.p.both9$start[i]-1), genes.p.both9$end[i])
+}
+end.c <- c(end.c, max(cer9.c$locus))
+end.p <- c(end.p, max(cer9.p$locus))
+cov9.cp <- data.frame(ID, start.c, end.c, start.p, end.p)
+
+####left off here########
+###figure out coverage of each gene
+cov9.cp$depth.cer.c <- 0
+cov9.cp$depth.cer.p <- 0
+cov9.cp$depth.IXpar.c <- 0
+cov9.cp$depth.IXpar.p <- 0
+for (i in 1:length(cov9.cp$ID)){
+  cov.cp$depth.a1.c[i] <- mean(A1_chr9.c$depth[cov.cp$start.c[i]:cov.cp$end.c[i]])
+  cov.cp$depth.a1.p[i] <- mean(A1_chr9.p$depth[cov.cp$start.p[i]:cov.cp$end.p[i]])
+  cov.cp$depth.a2.c[i] <- mean(A2_chr9.c$depth[cov.cp$start.c[i]:cov.cp$end.c[i]])
+  cov.cp$depth.a2.p[i] <- mean(A2_chr9.p$depth[cov.cp$start.p[i]:cov.cp$end.p[i]])
+}
+
+
+plot(cov.cp$depth.a1.c, type="l")
+lines(cov.cp$depth.a1.p, col="black", lty=2)
+lines(cov.cp$depth.a2.c, col="blue")
+lines(cov.cp$depth.a2.p, col="blue", lty=2)
+#region A
+grep("YIL166C", cov.cp$ID)
+#2
+abline(v=2, lty=2, col="forestgreen")
+grep("YIL156W", cov.cp$ID)
+cov.cp[22:26,]
+#26 real one
+abline(v=26, lty=2, col="forestgreen")
+#region with rec selected
+grep("YIL151C", cov.cp$ID)
+#36
+abline(v=36, lty=4, col="purple")
+
+grep("YIL169C", cov.cp$ID)
+#not there - just the end somewhere?
+grep("YIL043C", cov.cp$ID)
+#258
+abline(v=258, lty=4, col="red")
+
+#pull out only genes
+row_odd <- seq_len(nrow(cov.cp)) %% 2
+cov.cp.genes <- cov.cp[row_odd==0,]
+cov.cp.genes
+
+#plot just gene info
+plot(cov.cp.genes$depth.a1.c, type="l")
+lines(cov.cp.genes$depth.a1.p, col="black", lty=2)
+lines(cov.cp.genes$depth.a2.c, col="blue")
+lines(cov.cp.genes$depth.a2.p, col="blue", lty=2)
+#gets rid of weird peak but not much diff otherwise
+
+#####only find region of interest####
+cov.cp.A <- cov.cp[1:36,]
+cov.cp.A.genes <- cov.cp.genes[1:18,]
+
+#all blocks
+plot(cov.cp.A$depth.a1.c, type="l")
+lines(cov.cp.A$depth.a1.p, col="black", lty=2)
+lines(cov.cp.A$depth.a2.c, col="blue")
+lines(cov.cp.A$depth.a2.p, col="blue", lty=2)
+
+#only genes
+plot(cov.cp.A.genes$depth.a1.c, type="l")
+lines(cov.cp.A.genes$depth.a1.p, col="black", lty=2)
+lines(cov.cp.A.genes$depth.a2.c, col="blue")
+lines(cov.cp.A.genes$depth.a2.p, col="blue", lty=2)
+
+
+#####find coverage ratio#####
+#find proportion paradoxus
+cov.cp.A$fp.a1 <- cov.cp.A$depth.a1.p/(cov.cp.A$depth.a1.c+cov.cp.A$depth.a1.p)
+cov.cp.A$fp.a2 <- cov.cp.A$depth.a2.p/(cov.cp.A$depth.a2.c+cov.cp.A$depth.a2.p)
+plot(cov.cp.A$fp.a1, type="l")
+lines(cov.cp.A$fp.a2)
+
+cov.cp.A.genes$fp.a1 <- cov.cp.A.genes$depth.a1.p/(cov.cp.A.genes$depth.a1.c+cov.cp.A.genes$depth.a1.p)
+cov.cp.A.genes$fp.a2 <- cov.cp.A.genes$depth.a2.p/(cov.cp.A.genes$depth.a2.c+cov.cp.A.genes$depth.a2.p)
+plot(cov.cp.A.genes$fp.a1, type="l", ylab="proportion paradoxus")
+lines(cov.cp.A.genes$fp.a2, col="blue")
+#looking at only genes is smoother - continue with this
+
+a1.diffs <- c(0)
+for (i in 2:length(cov.cp.A.genes$ID)){
+  a1.diffs <- c(a1.diffs, cov.cp.A.genes$fp.a1[i]-cov.cp.A.genes$fp.a1[i-1])
+}
+
+a2.diffs <- c(0)
+for (i in 2:length(cov.cp.A.genes$ID)){
+  a2.diffs <- c(a2.diffs, cov.cp.A.genes$fp.a2[i]-cov.cp.A.genes$fp.a2[i-1])
+}
+
+#add to plot the diffs
+#for a1 do *-1 so positive number if decrease in p
+lines(a1.diffs*-1, col="black")
+points(a1.diffs*-1, col="black")
+#a1 decr in par most around 15
+#a1 also decr in par around 10
+lines((a2.diffs), col="blue")
+points(a2.diffs, col="blue")
+#a2 incr in par most around 15
+#a2 slower incr in par around 10
+abline(h=0, lty=2, col="red")
+
+
+
+######find min of fp1 and fp2#####
+#plot fpa1 +fpa2 to find min - subtract 0.5 to plot
+lines(cov.cp.A.genes$fp.a1+cov.cp.A.genes$fp.a2-0.5, col="red")
+#make vector to find min
+fpoverall <- cov.cp.A.genes$fp.a1+cov.cp.A.genes$fp.a2
+grep(min(fpoverall), fpoverall)
+#11 is the min - 0.9542517
+
+cov.cp.A.genes$totaldepth.a1 <- cov.cp.A.genes$depth.a1.c + cov.cp.A.genes$depth.a1.p
+cov.cp.A.genes$totaldepth.a2 <- cov.cp.A.genes$depth.a2.c + cov.cp.A.genes$depth.a2.p
+
+mean(cov.cp.A.genes$totaldepth.a1)
+mean(cov.cp.A.genes$totaldepth.a2)
+#########oldA########
 #load in A1 coverage
 A1 <- read.table("/Users/jasmineono/Documents/GreigLabPDoc/BDM_Mapping/Chr_Replacement/bioinformatics/A1.coverage",
                                 header=FALSE, sep="\t", na.strings="NA", dec=".", strip.white=TRUE)
