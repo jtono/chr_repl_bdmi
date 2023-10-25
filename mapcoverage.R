@@ -12,19 +12,21 @@ IXpar <- read.table("coverage/IXpar.coverage",header=FALSE, sep="\t", na.strings
 # renames the header
 IXpar <- rename(IXpar, c(V1="Chr", V2="locus", V3="depth"))
 
+#load in Xpar coverage
+Xpar <- read.table("coverage/Xpar.coverage",header=FALSE, sep="\t", na.strings="NA", dec=".", strip.white=TRUE)
+# renames the header
+Xpar <- rename(Xpar, c(V1="Chr", V2="locus", V3="depth"))
+
+#load in XVpar coverage
+XVpar <- read.table("coverage/XVpar.coverage",header=FALSE, sep="\t", na.strings="NA", dec=".", strip.white=TRUE)
+# renames the header
+XVpar <- rename(XVpar, c(V1="Chr", V2="locus", V3="depth"))
+
 #load in gene files
 genes.c <- read.csv("W303.genes.csv", head=TRUE)
 genes.p <- read.csv("N17.genes.csv", head=TRUE)
 
-#########check for region A - chr9########
-#pull out only chr of interest
-#'for A - chr9
-#'do by species
-cer9.c <- subset(cer, Chr=="W303.chr09")
-cer9.p <- subset(cer, Chr=="N_17.chr09")
-IXpar9.c <- subset(IXpar, Chr=="W303.chr09")
-IXpar9.p <- subset(IXpar, Chr=="N_17.chr09")
-
+#########find genes for region A - chr9########
 #limit to only genes on chr interested in
 genes9.c <- subset(genes.c, seqid=="chr09")
 genes9.p <- subset(genes.p, seqid=="chr09")
@@ -53,6 +55,8 @@ genes.c.both9 <- genes9.c[c.geneind9,]
 genes.p.both9 <- genes9.p[p.geneind9,]
 
 #make data frame with genes and between genes regions
+cer9.c <- subset(cer, Chr=="W303.chr09")
+cer9.p <- subset(cer, Chr=="N_17.chr09")
 ID <- 1
 start.c <- 1
 end.c <- c()
@@ -69,16 +73,37 @@ end.c <- c(end.c, max(cer9.c$locus))
 end.p <- c(end.p, max(cer9.p$locus))
 cov9.cp <- data.frame(ID, start.c, end.c, start.p, end.p)
 
-###figure out coverage of each gene
+#########figure out coverage of each gene for each sample - region A######
+#pull out only chr of interest
+#'for A - chr9
+#'do by species
+cer9.c <- subset(cer, Chr=="W303.chr09")
+cer9.p <- subset(cer, Chr=="N_17.chr09")
+IXpar9.c <- subset(IXpar, Chr=="W303.chr09")
+IXpar9.p <- subset(IXpar, Chr=="N_17.chr09")
+Xpar9.c <- subset(Xpar, Chr=="W303.chr09")
+Xpar9.p <- subset(Xpar, Chr=="N_17.chr09")
+XVpar9.c <- subset(XVpar, Chr=="W303.chr09")
+XVpar9.p <- subset(XVpar, Chr=="N_17.chr09")
+
+
 cov9.cp$depth.cer.c <- 0
 cov9.cp$depth.cer.p <- 0
 cov9.cp$depth.IXpar.c <- 0
 cov9.cp$depth.IXpar.p <- 0
+cov9.cp$depth.Xpar.c <- 0
+cov9.cp$depth.Xpar.p <- 0
+cov9.cp$depth.XVpar.c <- 0
+cov9.cp$depth.XVpar.p <- 0
 for (i in 1:length(cov9.cp$ID)){
   cov9.cp$depth.cer.c[i] <- mean(cer9.c$depth[cov9.cp$start.c[i]:cov9.cp$end.c[i]])
   cov9.cp$depth.cer.p[i] <- mean(cer9.p$depth[cov9.cp$start.p[i]:cov9.cp$end.p[i]])
   cov9.cp$depth.IXpar.c[i] <- mean(IXpar9.c$depth[cov9.cp$start.c[i]:cov9.cp$end.c[i]])
   cov9.cp$depth.IXpar.p[i] <- mean(IXpar9.p$depth[cov9.cp$start.p[i]:cov9.cp$end.p[i]])
+  cov9.cp$depth.Xpar.c[i] <- mean(Xpar9.c$depth[cov9.cp$start.c[i]:cov9.cp$end.c[i]])
+  cov9.cp$depth.Xpar.p[i] <- mean(Xpar9.p$depth[cov9.cp$start.p[i]:cov9.cp$end.p[i]])
+  cov9.cp$depth.XVpar.c[i] <- mean(XVpar9.c$depth[cov9.cp$start.c[i]:cov9.cp$end.c[i]])
+  cov9.cp$depth.XVpar.p[i] <- mean(XVpar9.p$depth[cov9.cp$start.p[i]:cov9.cp$end.p[i]])
 }
 
 
@@ -86,6 +111,10 @@ plot(cov9.cp$depth.cer.c, type="l")
 lines(cov9.cp$depth.cer.p, col="pink", lty=2)
 lines(cov9.cp$depth.IXpar.c, col="blue")
 lines(cov9.cp$depth.IXpar.p, col="purple", lty=2)
+lines(cov9.cp$depth.Xpar.c, col="green")
+lines(cov9.cp$depth.Xpar.p, col="darkgreen", lty=2)
+lines(cov9.cp$depth.XVpar.c, col="red")
+lines(cov9.cp$depth.XVpar.p, col="darkred", lty=2)
 #region A
 grep("YIL166C", cov9.cp$ID)
 #2
@@ -111,9 +140,13 @@ plot(cov9.cp.genes$depth.cer.c, type="l")
 lines(cov9.cp.genes$depth.cer.p, col="pink", lty=2)
 lines(cov9.cp.genes$depth.IXpar.c, col="blue")
 lines(cov9.cp.genes$depth.IXpar.p, col="purple", lty=2)
+lines(cov9.cp.genes$depth.Xpar.c, col="green")
+lines(cov9.cp.genes$depth.Xpar.p, col="darkgreen", lty=2)
+lines(cov9.cp.genes$depth.XVpar.c, col="red")
+lines(cov9.cp.genes$depth.XVpar.p, col="darkred", lty=2)
 #gets rid of some peaks but not much diff otherwise
 
-#####only find region of interest####
+#####only find region of interest - region A####
 cov9.cp.A <- cov9.cp[1:36,]
 cov9.cp.A.genes <- cov9.cp.genes[1:18,]
 
@@ -122,15 +155,284 @@ plot(cov9.cp.A$depth.cer.c, type="l", ylim=c(0,100))
 lines(cov9.cp.A$depth.cer.p, col="pink", lty=2)
 lines(cov9.cp.A$depth.IXpar.c, col="blue")
 lines(cov9.cp.A$depth.IXpar.p, col="purple", lty=2)
+lines(cov9.cp.A$depth.Xpar.c, col="green")
+lines(cov9.cp.A$depth.Xpar.p, col="darkgreen", lty=2)
+lines(cov9.cp.A$depth.XVpar.c, col="red")
+lines(cov9.cp.A$depth.XVpar.p, col="darkred", lty=2)
 
 #only genes
 plot(cov9.cp.A.genes$depth.cer.c, type="l", ylim=c(0,100))
 lines(cov9.cp.A.genes$depth.cer.p, col="pink", lty=2)
 lines(cov9.cp.A.genes$depth.IXpar.c, col="blue")
 lines(cov9.cp.A.genes$depth.IXpar.p, col="purple", lty=2)
+lines(cov9.cp.A.genes$depth.Xpar.c, col="green")
+lines(cov9.cp.A.genes$depth.Xpar.p, col="darkgreen", lty=2)
+lines(cov9.cp.A.genes$depth.XVpar.c, col="red")
+lines(cov9.cp.A.genes$depth.XVpar.p, col="darkred", lty=2)
 #definitely less peaky with genes but still some variation
+#pattern not exactly the same with both cerevisiae, but one is s288c?
 
-#########left off here###########
+#####calculate even coverage - region A#####
+#don't need to worry about genes mapping to other genome for this region
+#the problem seems to be in reliable coverage across the region
+plot(cov9.cp.A.genes$depth.cer.c/cov9.cp.A.genes$depth.cer.c)
+lines(cov9.cp.A.genes$depth.IXpar.p/cov9.cp.A.genes$depth.IXpar.p)
+lines(cov9.cp.A.genes$depth.Xpar.c/cov9.cp.A.genes$depth.cer.c, col="green")
+lines(cov9.cp.A.genes$depth.Xpar.c/30, col="darkgreen")
+lines(cov9.cp.A.genes$depth.XVpar.c/cov9.cp.A.genes$depth.cer.c, col="red")
+lines(cov9.cp.A.genes$depth.XVpar.c/30, col="darkred")
+lines(cov9.cp.A.genes$depth.XVpar.c/cov9.cp.A.genes$depth.Xpar.c, col="yellow")
+
+#what would it be like if there was recombination between cer and IXpar?
+cer.c <- cov9.cp.A.genes$depth.cer.c
+cer.p <- cov9.cp.A.genes$depth.cer.p
+IX.c <- cov9.cp.A.genes$depth.IXpar.c
+IX.p <- cov9.cp.A.genes$depth.IXpar.p
+
+
+#let's say 5% recombination event between 3rd and 4th genes
+IX.c[4:18] <- IX.c[4:18]+cer.c[4:18]*0.05
+cer.c[4:18]<-cer.c[4:18]-cer.c[4:18]*0.05
+
+cer.p[4:18] <- cer.p[4:18]+IX.p[4:18]*0.05
+IX.p[4:18] <- IX.p[4:18]-IX.p[4:18]*0.05
+
+plot(cer.c/(cer.c+cer.p),type="l",ylim=c(0,1))
+lines(IX.c/(IX.c+IX.p), col="blue")
+
+
+IX.c[5:18] <- IX.c[5:18]+cer.c[5:18]*0.1
+cer.c[5:18]<-cer.c[5:18]-cer.c[5:18]*0.1
+
+cer.p[5:18] <- cer.p[5:18]+IX.p[5:18]*0.1
+IX.p[5:18] <- IX.p[5:18]-IX.p[5:18]*0.1
+
+IX.c[8:18] <- IX.c[8:18]+cer.c[8:18]*0.15
+cer.c[8:18]<-cer.c[8:18]-cer.c[8:18]*0.15
+
+cer.p[8:18] <- cer.p[8:18]+IX.p[8:18]*0.15
+IX.p[8:18] <- IX.p[8:18]-IX.p[8:18]*0.15
+
+IX.c[10:18] <- IX.c[10:18]+cer.c[10:18]*0.3
+cer.c[10:18]<-cer.c[10:18]-cer.c[10:18]*0.3
+
+cer.p[10:18] <- cer.p[10:18]+IX.p[10:18]*0.3
+IX.p[10:18] <- IX.p[10:18]-IX.p[10:18]*0.3
+
+plot(cer.c/(cer.c+cer.p),type="l",ylim=c(0,1))
+lines(IX.c/(IX.c+IX.p), col="blue")
+
+#gets a bit messy
+
+#########find genes for region C - chr10########
+#limit to only genes on chr interested in
+genes10.c <- subset(genes.c, seqid=="chr10")
+genes10.p <- subset(genes.p, seqid=="chr10")
+
+
+#find which genes in both and in same order
+c.geneind10 <-c()
+for (i in 1:length(genes10.c$ID)){
+  c.geneind10 <- c(c.geneind10, which(genes10.c$ID%in%genes10.p$ID[i]))
+}
+
+#in order
+is.sorted(c.geneind10)
+
+#make n17 (par) equivalent
+p.geneind10 <- c()
+for (i in 1:length(c.geneind10)){
+  id <- as.character(genes10.c$ID[c.geneind10[i]])
+  p.geneind10 <- c(p.geneind10, which(genes10.p$ID==id))
+}
+#in order
+is.sorted(p.geneind10)
+
+#pull out only genes that are in both
+genes.c.both10 <- genes10.c[c.geneind10,]
+genes.p.both10 <- genes10.p[p.geneind10,]
+
+#make data frame with genes and between genes regions
+cer10.c <- subset(cer, Chr=="W303.chr10")
+cer10.p <- subset(cer, Chr=="N_17.chr10")
+ID <- 1
+start.c <- 1
+end.c <- c()
+start.p <- 1
+end.p <- c()
+for (i in 1:length(genes.c.both10$X)){
+  ID <- c(ID, as.character(genes.c.both10$ID[i]), i+1)
+  start.c <- c(start.c, genes.c.both10$start[i], (genes.c.both10$end[i]+1))
+  end.c <- c(end.c, (genes.c.both10$start[i]-1), genes.c.both10$end[i])
+  start.p <- c(start.p, genes.p.both10$start[i], (genes.p.both10$end[i]+1))
+  end.p <- c(end.p, (genes.p.both10$start[i]-1), genes.p.both10$end[i])
+}
+end.c <- c(end.c, max(cer10.c$locus))
+end.p <- c(end.p, max(cer10.p$locus))
+cov10.cp <- data.frame(ID, start.c, end.c, start.p, end.p)
+
+#########figure out coverage of each gene for each sample - region C######
+#pull out only chr of interest
+#'for C - chr10
+#'do by species
+cer10.c <- subset(cer, Chr=="W303.chr10")
+cer10.p <- subset(cer, Chr=="N_17.chr10")
+IXpar10.c <- subset(IXpar, Chr=="W303.chr10")
+IXpar10.p <- subset(IXpar, Chr=="N_17.chr10")
+Xpar10.c <- subset(Xpar, Chr=="W303.chr10")
+Xpar10.p <- subset(Xpar, Chr=="N_17.chr10")
+XVpar10.c <- subset(XVpar, Chr=="W303.chr10")
+XVpar10.p <- subset(XVpar, Chr=="N_17.chr10")
+
+
+cov10.cp$depth.cer.c <- 0
+cov10.cp$depth.cer.p <- 0
+cov10.cp$depth.IXpar.c <- 0
+cov10.cp$depth.IXpar.p <- 0
+cov10.cp$depth.Xpar.c <- 0
+cov10.cp$depth.Xpar.p <- 0
+cov10.cp$depth.XVpar.c <- 0
+cov10.cp$depth.XVpar.p <- 0
+for (i in 1:length(cov10.cp$ID)){
+  cov10.cp$depth.cer.c[i] <- mean(cer10.c$depth[cov10.cp$start.c[i]:cov10.cp$end.c[i]])
+  cov10.cp$depth.cer.p[i] <- mean(cer10.p$depth[cov10.cp$start.p[i]:cov10.cp$end.p[i]])
+  cov10.cp$depth.IXpar.c[i] <- mean(IXpar10.c$depth[cov10.cp$start.c[i]:cov10.cp$end.c[i]])
+  cov10.cp$depth.IXpar.p[i] <- mean(IXpar10.p$depth[cov10.cp$start.p[i]:cov10.cp$end.p[i]])
+  cov10.cp$depth.Xpar.c[i] <- mean(Xpar10.c$depth[cov10.cp$start.c[i]:cov10.cp$end.c[i]])
+  cov10.cp$depth.Xpar.p[i] <- mean(Xpar10.p$depth[cov10.cp$start.p[i]:cov10.cp$end.p[i]])
+  cov10.cp$depth.XVpar.c[i] <- mean(XVpar10.c$depth[cov10.cp$start.c[i]:cov10.cp$end.c[i]])
+  cov10.cp$depth.XVpar.p[i] <- mean(XVpar10.p$depth[cov10.cp$start.p[i]:cov10.cp$end.p[i]])
+}
+
+
+plot(cov10.cp$depth.cer.c, type="l")
+lines(cov10.cp$depth.cer.p, col="pink", lty=2)
+lines(cov10.cp$depth.IXpar.c, col="blue")
+lines(cov10.cp$depth.IXpar.p, col="purple", lty=2)
+lines(cov10.cp$depth.Xpar.c, col="green")
+lines(cov10.cp$depth.Xpar.p, col="darkgreen", lty=2)
+lines(cov10.cp$depth.XVpar.c, col="red")
+lines(cov10.cp$depth.XVpar.p, col="darkred", lty=2)
+#region C
+grep("YJL218W", cov10.cp$ID)
+#2
+abline(v=2, lty=2, col="forestgreen")
+grep("YJL165C", cov10.cp$ID)
+#108
+abline(v=108, lty=2, col="forestgreen")
+#region with rec selected
+grep("YJL164C", cov10.cp$ID)
+#110
+abline(v=110, lty=4, col="purple")
+
+grep("YJL219W", cov10.cp$ID)
+#not there - just the end somewhere?
+
+
+#pull out only genes
+row_odd <- seq_len(nrow(cov10.cp)) %% 2
+cov10.cp.genes <- cov10.cp[row_odd==0,]
+
+
+#plot just gene info
+plot(cov10.cp.genes$depth.cer.c, type="l")
+lines(cov10.cp.genes$depth.cer.p, col="pink", lty=2)
+lines(cov10.cp.genes$depth.IXpar.c, col="blue")
+lines(cov10.cp.genes$depth.IXpar.p, col="purple", lty=2)
+lines(cov10.cp.genes$depth.Xpar.c, col="green")
+lines(cov10.cp.genes$depth.Xpar.p, col="darkgreen", lty=2)
+lines(cov10.cp.genes$depth.XVpar.c, col="red")
+lines(cov10.cp.genes$depth.XVpar.p, col="darkred", lty=2)
+#gets rid of some peaks but not much diff otherwise
+
+
+#####only find region of interest####
+cov10.cp.C <- cov10.cp[1:110,]
+cov10.cp.C.genes <- cov10.cp.genes[1:55,]
+
+#all blocks
+plot(cov10.cp.C$depth.cer.c, type="l", ylim=c(0,100))
+lines(cov10.cp.C$depth.cer.p, col="pink", lty=2)
+lines(cov10.cp.C$depth.IXpar.c, col="blue")
+lines(cov10.cp.C$depth.IXpar.p, col="purple", lty=2)
+lines(cov10.cp.C$depth.Xpar.c, col="green")
+lines(cov10.cp.C$depth.Xpar.p, col="darkgreen", lty=2)
+lines(cov10.cp.C$depth.XVpar.c, col="red")
+lines(cov10.cp.C$depth.XVpar.p, col="darkred", lty=2)
+
+#only genes
+plot(cov10.cp.C.genes$depth.cer.c, type="l", ylim=c(0,100))
+lines(cov10.cp.C.genes$depth.cer.p, col="pink", lty=2)
+lines(cov10.cp.C.genes$depth.IXpar.c, col="blue")
+lines(cov10.cp.C.genes$depth.IXpar.p, col="purple", lty=2)
+lines(cov10.cp.C.genes$depth.Xpar.c, col="green")
+lines(cov10.cp.C.genes$depth.Xpar.p, col="darkgreen", lty=2)
+lines(cov10.cp.C.genes$depth.XVpar.c, col="red")
+lines(cov10.cp.C.genes$depth.XVpar.p, col="darkred", lty=2)
+#definitely less peaky with genes but still some variation
+#pattern not exactly the same with both cerevisiae, but one is s288c?
+#more similar pattern than A?
+#also some mis-mapping this time
+
+#####calculate even coverage#####
+#the problem seems to be in reliable coverage across the region
+plot(cov10.cp.C.genes$depth.cer.c/cov10.cp.C.genes$depth.cer.c)
+lines(cov10.cp.C.genes$depth.IXpar.c/cov10.cp.C.genes$depth.cer.c)
+lines(cov10.cp.C.genes$depth.XVpar.c/cov10.cp.C.genes$depth.cer.c, col="green")
+lines(cov10.cp.C.genes$depth.XVpar.c/cov10.cp.C.genes$depth.IXpar.c)
+lines(cov10.cp.C.genes$depth.XVpar.c/30, col="red")
+
+
+plot(cov10.cp.C.genes$depth.Xpar.p)
+plot(cov10.cp.C.genes$depth.Xpar.c)
+#one gene in this region obviously mismapping but that's about it
+#######left off here#########
+
+
+
+#what would it be like if there was recombination between cer and IXpar?
+cer.c <- cov9.cp.A.genes$depth.cer.c
+cer.p <- cov9.cp.A.genes$depth.cer.p
+IX.c <- cov9.cp.A.genes$depth.IXpar.c
+IX.p <- cov9.cp.A.genes$depth.IXpar.p
+
+
+#let's say 5% recombination event between 3rd and 4th genes
+IX.c[4:18] <- IX.c[4:18]+cer.c[4:18]*0.05
+cer.c[4:18]<-cer.c[4:18]-cer.c[4:18]*0.05
+
+cer.p[4:18] <- cer.p[4:18]+IX.p[4:18]*0.05
+IX.p[4:18] <- IX.p[4:18]-IX.p[4:18]*0.05
+
+plot(cer.c/(cer.c+cer.p),type="l",ylim=c(0,1))
+lines(IX.c/(IX.c+IX.p), col="blue")
+
+
+IX.c[5:18] <- IX.c[5:18]+cer.c[5:18]*0.1
+cer.c[5:18]<-cer.c[5:18]-cer.c[5:18]*0.1
+
+cer.p[5:18] <- cer.p[5:18]+IX.p[5:18]*0.1
+IX.p[5:18] <- IX.p[5:18]-IX.p[5:18]*0.1
+
+IX.c[8:18] <- IX.c[8:18]+cer.c[8:18]*0.15
+cer.c[8:18]<-cer.c[8:18]-cer.c[8:18]*0.15
+
+cer.p[8:18] <- cer.p[8:18]+IX.p[8:18]*0.15
+IX.p[8:18] <- IX.p[8:18]-IX.p[8:18]*0.15
+
+IX.c[10:18] <- IX.c[10:18]+cer.c[10:18]*0.3
+cer.c[10:18]<-cer.c[10:18]-cer.c[10:18]*0.3
+
+cer.p[10:18] <- cer.p[10:18]+IX.p[10:18]*0.3
+IX.p[10:18] <- IX.p[10:18]-IX.p[10:18]*0.3
+
+plot(cer.c/(cer.c+cer.p),type="l",ylim=c(0,1))
+lines(IX.c/(IX.c+IX.p), col="blue")
+
+#gets a bit messy
+
+
+
 
 
 #####find coverage ratio#####
