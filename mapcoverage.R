@@ -69,70 +69,68 @@ end.c <- c(end.c, max(cer9.c$locus))
 end.p <- c(end.p, max(cer9.p$locus))
 cov9.cp <- data.frame(ID, start.c, end.c, start.p, end.p)
 
-####left off here########
 ###figure out coverage of each gene
 cov9.cp$depth.cer.c <- 0
 cov9.cp$depth.cer.p <- 0
 cov9.cp$depth.IXpar.c <- 0
 cov9.cp$depth.IXpar.p <- 0
 for (i in 1:length(cov9.cp$ID)){
-  cov.cp$depth.a1.c[i] <- mean(A1_chr9.c$depth[cov.cp$start.c[i]:cov.cp$end.c[i]])
-  cov.cp$depth.a1.p[i] <- mean(A1_chr9.p$depth[cov.cp$start.p[i]:cov.cp$end.p[i]])
-  cov.cp$depth.a2.c[i] <- mean(A2_chr9.c$depth[cov.cp$start.c[i]:cov.cp$end.c[i]])
-  cov.cp$depth.a2.p[i] <- mean(A2_chr9.p$depth[cov.cp$start.p[i]:cov.cp$end.p[i]])
+  cov9.cp$depth.cer.c[i] <- mean(cer9.c$depth[cov9.cp$start.c[i]:cov9.cp$end.c[i]])
+  cov9.cp$depth.cer.p[i] <- mean(cer9.p$depth[cov9.cp$start.p[i]:cov9.cp$end.p[i]])
+  cov9.cp$depth.IXpar.c[i] <- mean(IXpar9.c$depth[cov9.cp$start.c[i]:cov9.cp$end.c[i]])
+  cov9.cp$depth.IXpar.p[i] <- mean(IXpar9.p$depth[cov9.cp$start.p[i]:cov9.cp$end.p[i]])
 }
 
 
-plot(cov.cp$depth.a1.c, type="l")
-lines(cov.cp$depth.a1.p, col="black", lty=2)
-lines(cov.cp$depth.a2.c, col="blue")
-lines(cov.cp$depth.a2.p, col="blue", lty=2)
+plot(cov9.cp$depth.cer.c, type="l")
+lines(cov9.cp$depth.cer.p, col="pink", lty=2)
+lines(cov9.cp$depth.IXpar.c, col="blue")
+lines(cov9.cp$depth.IXpar.p, col="purple", lty=2)
 #region A
-grep("YIL166C", cov.cp$ID)
+grep("YIL166C", cov9.cp$ID)
 #2
 abline(v=2, lty=2, col="forestgreen")
-grep("YIL156W", cov.cp$ID)
-cov.cp[22:26,]
+grep("YIL156W", cov9.cp$ID)
+cov9.cp[22:26,]
 #26 real one
 abline(v=26, lty=2, col="forestgreen")
 #region with rec selected
-grep("YIL151C", cov.cp$ID)
+grep("YIL151C", cov9.cp$ID)
 #36
 abline(v=36, lty=4, col="purple")
 
-grep("YIL169C", cov.cp$ID)
+grep("YIL169C", cov9.cp$ID)
 #not there - just the end somewhere?
-grep("YIL043C", cov.cp$ID)
-#258
-abline(v=258, lty=4, col="red")
 
 #pull out only genes
-row_odd <- seq_len(nrow(cov.cp)) %% 2
-cov.cp.genes <- cov.cp[row_odd==0,]
-cov.cp.genes
+row_odd <- seq_len(nrow(cov9.cp)) %% 2
+cov9.cp.genes <- cov9.cp[row_odd==0,]
 
 #plot just gene info
-plot(cov.cp.genes$depth.a1.c, type="l")
-lines(cov.cp.genes$depth.a1.p, col="black", lty=2)
-lines(cov.cp.genes$depth.a2.c, col="blue")
-lines(cov.cp.genes$depth.a2.p, col="blue", lty=2)
-#gets rid of weird peak but not much diff otherwise
+plot(cov9.cp.genes$depth.cer.c, type="l")
+lines(cov9.cp.genes$depth.cer.p, col="pink", lty=2)
+lines(cov9.cp.genes$depth.IXpar.c, col="blue")
+lines(cov9.cp.genes$depth.IXpar.p, col="purple", lty=2)
+#gets rid of some peaks but not much diff otherwise
 
 #####only find region of interest####
-cov.cp.A <- cov.cp[1:36,]
-cov.cp.A.genes <- cov.cp.genes[1:18,]
+cov9.cp.A <- cov9.cp[1:36,]
+cov9.cp.A.genes <- cov9.cp.genes[1:18,]
 
 #all blocks
-plot(cov.cp.A$depth.a1.c, type="l")
-lines(cov.cp.A$depth.a1.p, col="black", lty=2)
-lines(cov.cp.A$depth.a2.c, col="blue")
-lines(cov.cp.A$depth.a2.p, col="blue", lty=2)
+plot(cov9.cp.A$depth.cer.c, type="l", ylim=c(0,100))
+lines(cov9.cp.A$depth.cer.p, col="pink", lty=2)
+lines(cov9.cp.A$depth.IXpar.c, col="blue")
+lines(cov9.cp.A$depth.IXpar.p, col="purple", lty=2)
 
 #only genes
-plot(cov.cp.A.genes$depth.a1.c, type="l")
-lines(cov.cp.A.genes$depth.a1.p, col="black", lty=2)
-lines(cov.cp.A.genes$depth.a2.c, col="blue")
-lines(cov.cp.A.genes$depth.a2.p, col="blue", lty=2)
+plot(cov9.cp.A.genes$depth.cer.c, type="l", ylim=c(0,100))
+lines(cov9.cp.A.genes$depth.cer.p, col="pink", lty=2)
+lines(cov9.cp.A.genes$depth.IXpar.c, col="blue")
+lines(cov9.cp.A.genes$depth.IXpar.p, col="purple", lty=2)
+#definitely less peaky with genes but still some variation
+
+#########left off here###########
 
 
 #####find coverage ratio#####
