@@ -26,12 +26,16 @@ XVpar <- rename(XVpar, c(V1="Chr", V2="locus", V3="depth"))
 genes.c <- read.csv("W303.genes.csv", head=TRUE)
 genes.p <- read.csv("N17.genes.csv", head=TRUE)
 
-#########find DNA loading correction - chr1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13, 14, 16########
 #get rid of weird W303.scplasm1
 cer <- cer[-which(cer$Chr=="W303.scplasm1"),]
 IXpar <- IXpar[-which(IXpar$Chr=="W303.scplasm1"),]
 Xpar <- Xpar[-which(Xpar$Chr=="W303.scplasm1"),]
 XVpar <- XVpar[-which(XVpar$Chr=="W303.scplasm1"),]
+
+#########here#########
+
+#########find DNA loading correction - chr1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13, 14, 16########
+
 
 #for now just use global sum
 cer_glob_cov <- sum(cer$depth)
