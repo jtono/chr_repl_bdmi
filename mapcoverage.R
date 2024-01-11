@@ -32,6 +32,36 @@ IXpar <- IXpar[-which(IXpar$Chr=="W303.scplasm1"),]
 Xpar <- Xpar[-which(Xpar$Chr=="W303.scplasm1"),]
 XVpar <- XVpar[-which(XVpar$Chr=="W303.scplasm1"),]
 
+#####A samples#######
+A1 <- read.table("coverage/A1.coverage",header=FALSE, sep="\t", na.strings="NA", dec=".", strip.white=TRUE)
+# renames the header
+A1 <- rename(A1, c(V1="Chr", V2="locus", V3="depth"))
+
+A2 <- read.table("coverage/A2.coverage",header=FALSE, sep="\t", na.strings="NA", dec=".", strip.white=TRUE)
+# renames the header
+A2 <- rename(A2, c(V1="Chr", V2="locus", V3="depth"))
+
+A19.c <- subset(A1, Chr=="W303.chr09")
+A19.p <- subset(A1, Chr=="N_17.chr09")
+A29.c <- subset(A2, Chr=="W303.chr09")
+A29.p <- subset(A2, Chr=="N_17.chr09")
+tail(which(A19.c$depth==0))
+tail(which(A19.p$depth==0))
+plot(A19.p$depth)
+lines(A19.c$depth, col="red")
+plot(A29.p$depth)
+lines(A29.c$depth, col="red")
+
+A19.c.A <- subset(A19.c, locus<100000)
+A29.c.A <- subset(A29.c, locus<100000)
+A19.p.A <- subset(A19.p, locus<100000)
+A29.p.A <- subset(A29.p, locus<100000)
+
+plot(A19.p.A$depth)
+lines(A19.c.A$depth, col="red")
+plot(A29.p.A$depth)
+lines(A29.c.A$depth, col="red")
+
 #########here#########
 
 #########find DNA loading correction - chr1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13, 14, 16########
