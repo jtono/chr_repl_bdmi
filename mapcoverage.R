@@ -41,26 +41,185 @@ A2 <- read.table("coverage/A2.coverage",header=FALSE, sep="\t", na.strings="NA",
 # renames the header
 A2 <- rename(A2, c(V1="Chr", V2="locus", V3="depth"))
 
-A19.c <- subset(A1, Chr=="W303.chr09")
-A19.p <- subset(A1, Chr=="N_17.chr09")
-A29.c <- subset(A2, Chr=="W303.chr09")
-A29.p <- subset(A2, Chr=="N_17.chr09")
-tail(which(A19.c$depth==0))
-tail(which(A19.p$depth==0))
-plot(A19.p$depth)
-lines(A19.c$depth, col="red")
-plot(A29.p$depth)
-lines(A29.c$depth, col="red")
+#########find genes for region A - chr9########
+#limit to only genes on chr interested in
+genes9.c <- subset(genes.c, seqid=="chr09")
+genes9.p <- subset(genes.p, seqid=="chr09")
 
-A19.c.A <- subset(A19.c, locus<100000)
-A29.c.A <- subset(A29.c, locus<100000)
-A19.p.A <- subset(A19.p, locus<100000)
-A29.p.A <- subset(A29.p, locus<100000)
 
-plot(A19.p.A$depth)
-lines(A19.c.A$depth, col="red")
-plot(A29.p.A$depth)
-lines(A29.c.A$depth, col="red")
+#find which genes in both and in same order
+c.geneind9 <-c()
+for (i in 1:length(genes9.c$ID)){
+  c.geneind9 <- c(c.geneind9, which(genes9.c$ID%in%genes9.p$ID[i]))
+}
+
+#in order
+is.sorted(c.geneind9)
+
+#make n17 (par) equivalent
+p.geneind9 <- c()
+for (i in 1:length(c.geneind9)){
+  id <- as.character(genes9.c$ID[c.geneind9[i]])
+  p.geneind9 <- c(p.geneind9, which(genes9.p$ID==id))
+}
+#in order
+is.sorted(p.geneind9)
+
+#pull out only genes that are in both
+genes.c.both9 <- genes9.c[c.geneind9,]
+genes.p.both9 <- genes9.p[p.geneind9,]
+
+#make data frame with genes and between genes regions
+ID <- 1
+start.c <- 1
+end.c <- c()
+start.p <- 1
+end.p <- c()
+strand.c <- "X"
+strand.p <- "X"
+for (i in 1:length(genes.c.both9$X)){
+  ID <- c(ID, as.character(genes.c.both9$ID[i]), i+1)
+  start.c <- c(start.c, genes.c.both9$start[i], (genes.c.both9$end[i]+1))
+  end.c <- c(end.c, (genes.c.both9$start[i]-1), genes.c.both9$end[i])
+  start.p <- c(start.p, genes.p.both9$start[i], (genes.p.both9$end[i]+1))
+  end.p <- c(end.p, (genes.p.both9$start[i]-1), genes.p.both9$end[i])
+  strand.c <- c(strand.c, genes.c.both9$strand[i], "X")
+  strand.p <- c(strand.p, genes.p.both9$strand[i], "X")
+}
+end.c <- c(end.c, max(cer9.c$locus))
+end.p <- c(end.p, max(cer9.p$locus))
+cov9.cp <- data.frame(ID, start.c, end.c, strand.c, start.p, end.p, strand.p)
+
+#########figure out coverage of each gene for each sample - region A######
+#pull out only chr of interest
+#'for A - chr9
+#'do by species
+cer9.c <- subset(cer, Chr=="W303.chr09")
+cer9.p <- subset(cer, Chr=="N_17.chr09")
+IXpar9.c <- subset(IXpar, Chr=="W303.chr09")
+IXpar9.p <- subset(IXpar, Chr=="N_17.chr09")
+Xpar9.c <- subset(Xpar, Chr=="W303.chr09")
+Xpar9.p <- subset(Xpar, Chr=="N_17.chr09")
+XVpar9.c <- subset(XVpar, Chr=="W303.chr09")
+XVpar9.p <- subset(XVpar, Chr=="N_17.chr09")
+
+
+#get depth of A, T, G (or first 3 bases)
+cov9.cp$depth.cer.c <- 0
+cov9.cp$depth.cer.p <- 0
+cov9.cp$depth.IXpar.c <- 0
+cov9.cp$depth.IXpar.p <- 0
+cov9.cp$depth.Xpar.c <- 0
+cov9.cp$depth.Xpar.p <- 0
+cov9.cp$depth.XVpar.c <- 0
+cov9.cp$depth.XVpar.p <- 0
+for (i in 1:length(cov9.cp$ID)){
+  if(cov9.cp$strand.c[i]=="-"){
+    cov9.cp$depth.cer.c[i] <- mean(cer9.c$depth[(cov9.cp$end.c[i]-2):(cov9.cp$end.c[i])])
+    cov9.cp$depth.IXpar.c[i] <- mean(IXpar9.c$depth[(cov9.cp$end.c[i]-2):(cov9.cp$end.c[i])])
+    cov9.cp$depth.Xpar.c[i] <- mean(Xpar9.c$depth[(cov9.cp$end.c[i]-2):(cov9.cp$end.c[i])])
+    cov9.cp$depth.XVpar.c[i] <- mean(XVpar9.c$depth[(cov9.cp$end.c[i]-2):(cov9.cp$end.c[i])])
+  }else{
+    cov9.cp$depth.cer.c[i] <- mean(cer9.c$depth[(cov9.cp$start.c[i]):(cov9.cp$start.c[i]+2)])
+    cov9.cp$depth.IXpar.c[i] <- mean(IXpar9.c$depth[(cov9.cp$start.c[i]):(cov9.cp$start.c[i]+2)])
+    cov9.cp$depth.Xpar.c[i] <- mean(Xpar9.c$depth[(cov9.cp$start.c[i]):(cov9.cp$start.c[i]+2)])
+    cov9.cp$depth.XVpar.c[i] <- mean(XVpar9.c$depth[(cov9.cp$start.c[i]):(cov9.cp$start.c[i]+2)])
+  }
+  if(cov9.cp$strand.p[i]=="-"){
+    cov9.cp$depth.cer.p[i] <- mean(cer9.p$depth[(cov9.cp$end.p[i]-2):(cov9.cp$end.p[i])])
+    cov9.cp$depth.IXpar.p[i] <- mean(IXpar9.p$depth[(cov9.cp$end.p[i]-2):(cov9.cp$end.p[i])])
+    cov9.cp$depth.Xpar.p[i] <- mean(Xpar9.p$depth[(cov9.cp$end.p[i]-2):(cov9.cp$end.p[i])])
+    cov9.cp$depth.XVpar.p[i] <- mean(XVpar9.p$depth[(cov9.cp$end.p[i]-2):(cov9.cp$end.p[i])])
+  }else{
+    cov9.cp$depth.cer.p[i] <- mean(cer9.p$depth[(cov9.cp$start.p[i]):(cov9.cp$start.p[i]+2)])
+    cov9.cp$depth.IXpar.p[i] <- mean(IXpar9.p$depth[(cov9.cp$start.p[i]):(cov9.cp$start.p[i]+2)])
+    cov9.cp$depth.Xpar.p[i] <- mean(Xpar9.p$depth[(cov9.cp$start.p[i]):(cov9.cp$start.p[i]+2)])
+    cov9.cp$depth.XVpar.p[i] <- mean(XVpar9.p$depth[(cov9.cp$start.p[i]):(cov9.cp$start.p[i]+2)])
+  }
+}
+
+#take a look at it
+plot(cov9.cp$depth.cer.c, type="l")
+lines(cov9.cp$depth.cer.p, col="pink", lty=2)
+lines(cov9.cp$depth.IXpar.c, col="blue")
+lines(cov9.cp$depth.IXpar.p, col="purple", lty=2)
+lines(cov9.cp$depth.Xpar.c, col="green")
+lines(cov9.cp$depth.Xpar.p, col="darkgreen", lty=2)
+lines(cov9.cp$depth.XVpar.c, col="red")
+lines(cov9.cp$depth.XVpar.p, col="darkred", lty=2)
+
+#pull out only genes
+row_odd <- seq_len(nrow(cov9.cp)) %% 2
+cov9.cp.genes <- cov9.cp[row_odd==0,]
+
+#plot just gene info
+plot(cov9.cp.genes$depth.cer.c, type="l", ylim=c(0,50))
+lines(cov9.cp.genes$depth.cer.p, col="pink", lty=2)
+lines(cov9.cp.genes$depth.IXpar.c, col="blue")
+lines(cov9.cp.genes$depth.IXpar.p, col="purple", lty=2)
+lines(cov9.cp.genes$depth.Xpar.c, col="green")
+lines(cov9.cp.genes$depth.Xpar.p, col="darkgreen", lty=2)
+lines(cov9.cp.genes$depth.XVpar.c, col="red")
+lines(cov9.cp.genes$depth.XVpar.p, col="darkred", lty=2)
+#gets rid of some peaks but not much diff otherwise
+
+######left off here#######
+
+
+#region A
+grep("YIL166C", cov9.cp$ID)
+#2
+abline(v=2, lty=2, col="forestgreen")
+grep("YIL156W", cov9.cp$ID)
+cov9.cp[22:26,]
+#26 real one
+abline(v=26, lty=2, col="forestgreen")
+#region with rec selected
+grep("YIL151C", cov9.cp$ID)
+#36
+abline(v=36, lty=4, col="purple")
+
+grep("YIL169C", cov9.cp$ID)
+#not there - just the end somewhere?
+
+
+#####only find region of interest - region A####
+cov9.cp.A <- cov9.cp[1:36,]
+cov9.cp.A.genes <- cov9.cp.genes[1:18,]
+
+#all blocks
+plot(cov9.cp.A$depth.cer.c, type="l", ylim=c(0,100))
+lines(cov9.cp.A$depth.cer.p, col="pink", lty=2)
+lines(cov9.cp.A$depth.IXpar.c, col="blue")
+lines(cov9.cp.A$depth.IXpar.p, col="purple", lty=2)
+lines(cov9.cp.A$depth.Xpar.c, col="green")
+lines(cov9.cp.A$depth.Xpar.p, col="darkgreen", lty=2)
+lines(cov9.cp.A$depth.XVpar.c, col="red")
+lines(cov9.cp.A$depth.XVpar.p, col="darkred", lty=2)
+
+#only genes
+plot(cov9.cp.A.genes$depth.cer.c, type="l", ylim=c(0,50))
+lines(cov9.cp.A.genes$depth.cer.p, col="pink", lty=2)
+lines(cov9.cp.A.genes$depth.IXpar.c, col="blue")
+lines(cov9.cp.A.genes$depth.IXpar.p, col="purple", lty=2)
+lines(cov9.cp.A.genes$depth.Xpar.c, col="green")
+lines(cov9.cp.A.genes$depth.Xpar.p, col="darkgreen", lty=2)
+lines(cov9.cp.A.genes$depth.XVpar.c, col="red")
+lines(cov9.cp.A.genes$depth.XVpar.p, col="darkred", lty=2)
+#definitely less peaky with genes but still some variation
+#pattern not exactly the same with both cerevisiae, but one is s288c?
+
+##############check for mismapping - A###########
+range(cov9.cp.A.genes$depth.cer.c)
+range(cov9.cp.A.genes$depth.cer.p)
+range(cov9.cp.A.genes$depth.IXpar.c)
+range(cov9.cp.A.genes$depth.IXpar.p)
+range(cov9.cp.A.genes$depth.Xpar.c)
+range(cov9.cp.A.genes$depth.Xpar.p)
+range(cov9.cp.A.genes$depth.XVpar.c)
+range(cov9.cp.A.genes$depth.XVpar.p)
+#no mismapping
+
 
 #########here#########
 
@@ -198,161 +357,6 @@ lines(cov9.cp.genes$depth.XVpar.p, col="darkred", lty=2)
 
 
 
-#########find genes for region A - chr9########
-#limit to only genes on chr interested in
-genes9.c <- subset(genes.c, seqid=="chr09")
-genes9.p <- subset(genes.p, seqid=="chr09")
-
-
-#find which genes in both and in same order
-c.geneind9 <-c()
-for (i in 1:length(genes9.c$ID)){
-  c.geneind9 <- c(c.geneind9, which(genes9.c$ID%in%genes9.p$ID[i]))
-}
-
-#in order
-is.sorted(c.geneind9)
-
-#make n17 (par) equivalent
-p.geneind9 <- c()
-for (i in 1:length(c.geneind9)){
-  id <- as.character(genes9.c$ID[c.geneind9[i]])
-  p.geneind9 <- c(p.geneind9, which(genes9.p$ID==id))
-}
-#in order
-is.sorted(p.geneind9)
-
-#pull out only genes that are in both
-genes.c.both9 <- genes9.c[c.geneind9,]
-genes.p.both9 <- genes9.p[p.geneind9,]
-
-#make data frame with genes and between genes regions
-cer9.c <- subset(cer, Chr=="W303.chr09")
-cer9.p <- subset(cer, Chr=="N_17.chr09")
-ID <- 1
-start.c <- 1
-end.c <- c()
-start.p <- 1
-end.p <- c()
-for (i in 1:length(genes.c.both9$X)){
-  ID <- c(ID, as.character(genes.c.both9$ID[i]), i+1)
-  start.c <- c(start.c, genes.c.both9$start[i], (genes.c.both9$end[i]+1))
-  end.c <- c(end.c, (genes.c.both9$start[i]-1), genes.c.both9$end[i])
-  start.p <- c(start.p, genes.p.both9$start[i], (genes.p.both9$end[i]+1))
-  end.p <- c(end.p, (genes.p.both9$start[i]-1), genes.p.both9$end[i])
-}
-end.c <- c(end.c, max(cer9.c$locus))
-end.p <- c(end.p, max(cer9.p$locus))
-cov9.cp <- data.frame(ID, start.c, end.c, start.p, end.p)
-
-#########figure out coverage of each gene for each sample - region A######
-#pull out only chr of interest
-#'for A - chr9
-#'do by species
-cer9.c <- subset(cer, Chr=="W303.chr09")
-cer9.p <- subset(cer, Chr=="N_17.chr09")
-IXpar9.c <- subset(IXpar, Chr=="W303.chr09")
-IXpar9.p <- subset(IXpar, Chr=="N_17.chr09")
-Xpar9.c <- subset(Xpar, Chr=="W303.chr09")
-Xpar9.p <- subset(Xpar, Chr=="N_17.chr09")
-XVpar9.c <- subset(XVpar, Chr=="W303.chr09")
-XVpar9.p <- subset(XVpar, Chr=="N_17.chr09")
-
-
-cov9.cp$depth.cer.c <- 0
-cov9.cp$depth.cer.p <- 0
-cov9.cp$depth.IXpar.c <- 0
-cov9.cp$depth.IXpar.p <- 0
-cov9.cp$depth.Xpar.c <- 0
-cov9.cp$depth.Xpar.p <- 0
-cov9.cp$depth.XVpar.c <- 0
-cov9.cp$depth.XVpar.p <- 0
-for (i in 1:length(cov9.cp$ID)){
-  cov9.cp$depth.cer.c[i] <- mean(cer9.c$depth[cov9.cp$start.c[i]:cov9.cp$end.c[i]])
-  cov9.cp$depth.cer.p[i] <- mean(cer9.p$depth[cov9.cp$start.p[i]:cov9.cp$end.p[i]])
-  cov9.cp$depth.IXpar.c[i] <- mean(IXpar9.c$depth[cov9.cp$start.c[i]:cov9.cp$end.c[i]])
-  cov9.cp$depth.IXpar.p[i] <- mean(IXpar9.p$depth[cov9.cp$start.p[i]:cov9.cp$end.p[i]])
-  cov9.cp$depth.Xpar.c[i] <- mean(Xpar9.c$depth[cov9.cp$start.c[i]:cov9.cp$end.c[i]])
-  cov9.cp$depth.Xpar.p[i] <- mean(Xpar9.p$depth[cov9.cp$start.p[i]:cov9.cp$end.p[i]])
-  cov9.cp$depth.XVpar.c[i] <- mean(XVpar9.c$depth[cov9.cp$start.c[i]:cov9.cp$end.c[i]])
-  cov9.cp$depth.XVpar.p[i] <- mean(XVpar9.p$depth[cov9.cp$start.p[i]:cov9.cp$end.p[i]])
-}
-
-plot(cov9.cp$depth.cer.c, type="l")
-lines(cov9.cp$depth.cer.p, col="pink", lty=2)
-lines(cov9.cp$depth.IXpar.c, col="blue")
-lines(cov9.cp$depth.IXpar.p, col="purple", lty=2)
-lines(cov9.cp$depth.Xpar.c, col="green")
-lines(cov9.cp$depth.Xpar.p, col="darkgreen", lty=2)
-lines(cov9.cp$depth.XVpar.c, col="red")
-lines(cov9.cp$depth.XVpar.p, col="darkred", lty=2)
-#region A
-grep("YIL166C", cov9.cp$ID)
-#2
-abline(v=2, lty=2, col="forestgreen")
-grep("YIL156W", cov9.cp$ID)
-cov9.cp[22:26,]
-#26 real one
-abline(v=26, lty=2, col="forestgreen")
-#region with rec selected
-grep("YIL151C", cov9.cp$ID)
-#36
-abline(v=36, lty=4, col="purple")
-
-grep("YIL169C", cov9.cp$ID)
-#not there - just the end somewhere?
-
-#pull out only genes
-row_odd <- seq_len(nrow(cov9.cp)) %% 2
-cov9.cp.genes <- cov9.cp[row_odd==0,]
-
-#plot just gene info
-plot(cov9.cp.genes$depth.cer.c, type="l", ylim=c(0,50))
-lines(cov9.cp.genes$depth.cer.p, col="pink", lty=2)
-lines(cov9.cp.genes$depth.IXpar.c, col="blue")
-lines(cov9.cp.genes$depth.IXpar.p, col="purple", lty=2)
-lines(cov9.cp.genes$depth.Xpar.c, col="green")
-lines(cov9.cp.genes$depth.Xpar.p, col="darkgreen", lty=2)
-lines(cov9.cp.genes$depth.XVpar.c, col="red")
-lines(cov9.cp.genes$depth.XVpar.p, col="darkred", lty=2)
-#gets rid of some peaks but not much diff otherwise
-
-#####only find region of interest - region A####
-cov9.cp.A <- cov9.cp[1:36,]
-cov9.cp.A.genes <- cov9.cp.genes[1:18,]
-
-#all blocks
-plot(cov9.cp.A$depth.cer.c, type="l", ylim=c(0,100))
-lines(cov9.cp.A$depth.cer.p, col="pink", lty=2)
-lines(cov9.cp.A$depth.IXpar.c, col="blue")
-lines(cov9.cp.A$depth.IXpar.p, col="purple", lty=2)
-lines(cov9.cp.A$depth.Xpar.c, col="green")
-lines(cov9.cp.A$depth.Xpar.p, col="darkgreen", lty=2)
-lines(cov9.cp.A$depth.XVpar.c, col="red")
-lines(cov9.cp.A$depth.XVpar.p, col="darkred", lty=2)
-
-#only genes
-plot(cov9.cp.A.genes$depth.cer.c, type="l", ylim=c(0,50))
-lines(cov9.cp.A.genes$depth.cer.p, col="pink", lty=2)
-lines(cov9.cp.A.genes$depth.IXpar.c, col="blue")
-lines(cov9.cp.A.genes$depth.IXpar.p, col="purple", lty=2)
-lines(cov9.cp.A.genes$depth.Xpar.c, col="green")
-lines(cov9.cp.A.genes$depth.Xpar.p, col="darkgreen", lty=2)
-lines(cov9.cp.A.genes$depth.XVpar.c, col="red")
-lines(cov9.cp.A.genes$depth.XVpar.p, col="darkred", lty=2)
-#definitely less peaky with genes but still some variation
-#pattern not exactly the same with both cerevisiae, but one is s288c?
-
-##############check for mismapping - A###########
-range(cov9.cp.A.genes$depth.cer.c)
-range(cov9.cp.A.genes$depth.cer.p)
-range(cov9.cp.A.genes$depth.IXpar.c)
-range(cov9.cp.A.genes$depth.IXpar.p)
-range(cov9.cp.A.genes$depth.Xpar.c)
-range(cov9.cp.A.genes$depth.Xpar.p)
-range(cov9.cp.A.genes$depth.XVpar.c)
-range(cov9.cp.A.genes$depth.XVpar.p)
-#no mismapping
 
 #########find DNA loading correction + global expected val - A##########
 #find factor to multiply each gene by
