@@ -165,10 +165,12 @@ for (i in 1:length(cov9.cp$ID)){
   }
 }
 
-
+######test here#########
 
   cov9.cp$seqid <- "chr09"
 test <- get_cov_gene(cov9.cp, "depth.cer.c2", "depth.cer.p2", cer, "chr09")
+
+#########test here#########
 
 #take a look at it
 plot(cov9.cp$depth.cer.c, type="l")
