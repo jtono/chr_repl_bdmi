@@ -2,6 +2,30 @@ library(reshape)
 library(dplyr)
 is.sorted = Negate(is.unsorted)
 
+########functions#########
+#get the coverage of all genes (for first three bases) on a certain chromosome from a certain coverage file
+get_cov_gene <- function(genedatfr, colname.c, colname.p, coverage, chr){
+  cov.c <- subset(coverage, Chr==paste("W303",chr, sep="."))
+  cov.p <- subset(coverage, Chr==paste("N_17",chr, sep="."))
+  genedatfr <- subset(genedatfr, seqid==chr)
+
+  genedatfr[[colname.c]] <- 0
+  genedatfr[[colname.p]] <- 0
+  for (i in 1:length(genedatfr$ID)){
+    if(genedatfr$strand.c[i]=="-"){
+      genedatfr[[colname.c]][i] <- mean(cov.c$depth[(genedatfr$end.c[i]-2):(genedatfr$end.c[i])])
+    }else{
+      genedatfr[[colname.c]][i] <- mean(cov.c$depth[(genedatfr$start.c[i]):(genedatfr$start.c[i]+2)])
+    }
+    if(genedatfr$strand.p[i]=="-"){
+      genedatfr[[colname.p]][i] <- mean(cov.p$depth[(genedatfr$end.p[i]-2):(genedatfr$end.p[i])])
+    }else{
+      genedatfr[[colname.p]][i] <- mean(cov.p$depth[(genedatfr$start.p[i]):(genedatfr$start.p[i]+2)])
+    }
+  }
+
+  return(genedatfr)
+}
 ######load in files######
 #load in cer coverage
 cer <- read.table("coverage/cer.coverage",header=FALSE, sep="\t", na.strings="NA", dec=".", strip.white=TRUE)
@@ -91,7 +115,7 @@ cer9.c <- subset(cer, Chr=="W303.chr09")
 cer9.p <- subset(cer, Chr=="N_17.chr09")
 end.c <- c(end.c, max(cer9.c$locus))
 end.p <- c(end.p, max(cer9.p$locus))
-cov9.cp <- data.frame(ID, start.c, end.c, strand.c, start.p, end.p, strand.p)
+cov9.cp <- data.frame(start.c, end.c, strand.c, start.p, end.p, strand.p)
 
 #########figure out coverage of each gene for each sample - region A######
 #pull out only chr of interest
@@ -140,6 +164,11 @@ for (i in 1:length(cov9.cp$ID)){
     cov9.cp$depth.XVpar.p[i] <- mean(XVpar9.p$depth[(cov9.cp$start.p[i]):(cov9.cp$start.p[i]+2)])
   }
 }
+
+
+
+  cov9.cp$seqid <- "chr09"
+test <- get_cov_gene(cov9.cp, "depth.cer.c2", "depth.cer.p2", cer, "chr09")
 
 #take a look at it
 plot(cov9.cp$depth.cer.c, type="l")
@@ -255,8 +284,23 @@ genes.p.both_rest <- genes_rest.p[p.geneind_rest,]
 cov_rest.cp <- merge(select(genes.c.both_rest, seqid, start, end, strand, ID), select(genes.p.both_rest, seqid, start, end, strand, ID), by=c("seqid","ID"))
 names(cov_rest.cp) <- c("seqid","ID","start.c","end.c","strand.c","start.p","end.p","strand.p")
 
+#######here#########
 
-#########here#############
+cer9.c <- subset(cer, Chr=="W303.chr09")
+cer9.p <- subset(cer, Chr=="N_17.chr09")
+IXpar9.c <- subset(IXpar, Chr=="W303.chr09")
+IXpar9.p <- subset(IXpar, Chr=="N_17.chr09")
+Xpar9.c <- subset(Xpar, Chr=="W303.chr09")
+Xpar9.p <- subset(Xpar, Chr=="N_17.chr09")
+XVpar9.c <- subset(XVpar, Chr=="W303.chr09")
+XVpar9.p <- subset(XVpar, Chr=="N_17.chr09")
+
+
+test <- get_cov_gene(cov_rest.cp, "depth.cer.c", "depth.cer.p", cer, "chr01")
+
+
+
+
 
 #get coverage for genes
 cov_rest.cp$depth.cer.c <- 0
