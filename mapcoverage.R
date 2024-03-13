@@ -94,251 +94,215 @@ is.sorted(p.geneind9)
 genes.c.both9 <- genes9.c[c.geneind9,]
 genes.p.both9 <- genes9.p[p.geneind9,]
 
-######fix this!!########
+
 #make data frame with gene regions
-ID <- 1
-seqid <- c()
-start.c <- 1
-end.c <- c()
-start.p <- 1
-end.p <- c()
-strand.c <- ""
-strand.p <- ""
-for (i in 1:length(genes.c.both9$X)){
-  ID <- c(ID, as.character(genes.c.both9$ID[i]))
-  seqid <- c(seqid, genes.c.both9$seqid[i])
-  start.c <- c(start.c, genes.c.both9$start[i])
-  end.c <- c(end.c, (genes.c.both9$start[i]-1))
-  start.p <- c(start.p, genes.p.both9$start[i])
-  end.p <- c(end.p, (genes.p.both9$start[i]-1))
-  strand.c <- c(strand.c, genes.c.both9$strand[i])
-  strand.p <- c(strand.p, genes.p.both9$strand[i])
-}
-cer9.c <- subset(cer, Chr=="W303.chr09")
-cer9.p <- subset(cer, Chr=="N_17.chr09")
-end.c <- c(end.c, max(cer9.c$locus))
-end.p <- c(end.p, max(cer9.p$locus))
-cov9.cp <- data.frame(ID, seqid, start.c, end.c, strand.c, start.p, end.p, strand.p)
+cov9.cp <- merge(select(genes.c.both9, seqid, ID, start, end, strand), select(genes.p.both9, seqid, ID, start, end, strand), by=c("seqid","ID"))
+names(cov9.cp) <- c("seqid","ID","start.c","end.c","strand.c","start.p","end.p","strand.p")
+#'reorder
+cov9.cp <- cov9.cp[order(cov9.cp$start.c),]
 #'remove last gene - beyond mapping of genomes
-cov9.cp <- cov9.cp[1:450,]
+cov9.cp <- cov9.cp[1:(length(cov9.cp$ID)-1),]
 
 #########figure out coverage of each gene for each sample - region A######
-#pull out only chr of interest
 #'for A - chr9
-#'do by species
-cer9.c <- subset(cer, Chr=="W303.chr09")
-cer9.p <- subset(cer, Chr=="N_17.chr09")
-IXpar9.c <- subset(IXpar, Chr=="W303.chr09")
-IXpar9.p <- subset(IXpar, Chr=="N_17.chr09")
-Xpar9.c <- subset(Xpar, Chr=="W303.chr09")
-Xpar9.p <- subset(Xpar, Chr=="N_17.chr09")
-XVpar9.c <- subset(XVpar, Chr=="W303.chr09")
-XVpar9.p <- subset(XVpar, Chr=="N_17.chr09")
+#'#get depth of A, T, G (or first 3 bases)
+cov9.cp <- get_cov_gene(cov9.cp, "depth.cer.c", "depth.cer.p", cer, "chr09")
+cov9.cp <- get_cov_gene(cov9.cp, "depth.IXpar.c", "depth.IXpar.p", IXpar, "chr09")
+cov9.cp <- get_cov_gene(cov9.cp, "depth.Xpar.c", "depth.Xpar.p", Xpar, "chr09")
+cov9.cp <- get_cov_gene(cov9.cp, "depth.XVpar.c", "depth.XVpar.p", XVpar, "chr09")
+cov9.cp <- get_cov_gene(cov9.cp, "depth.A1.c", "depth.A1.p", A1, "chr09")
+cov9.cp <- get_cov_gene(cov9.cp, "depth.A2.c", "depth.A2.p", A2, "chr09")
 
-#####here########
-
-cov9.cp2 <- get_cov_gene(cov9.cp, "depth.cer.c", "depth.cer.p", cer, "chr09")
-
-
-#get depth of A, T, G (or first 3 bases)
-cov9.cp$depth.cer.c <- 0
-cov9.cp$depth.cer.p <- 0
-cov9.cp$depth.IXpar.c <- 0
-cov9.cp$depth.IXpar.p <- 0
-cov9.cp$depth.Xpar.c <- 0
-cov9.cp$depth.Xpar.p <- 0
-cov9.cp$depth.XVpar.c <- 0
-cov9.cp$depth.XVpar.p <- 0
-for (i in 1:length(cov9.cp$start.c)){
-  if(cov9.cp$strand.c[i]=="-"){
-    cov9.cp$depth.cer.c[i] <- mean(cer9.c$depth[(cov9.cp$end.c[i]-2):(cov9.cp$end.c[i])])
-    cov9.cp$depth.IXpar.c[i] <- mean(IXpar9.c$depth[(cov9.cp$end.c[i]-2):(cov9.cp$end.c[i])])
-    cov9.cp$depth.Xpar.c[i] <- mean(Xpar9.c$depth[(cov9.cp$end.c[i]-2):(cov9.cp$end.c[i])])
-    cov9.cp$depth.XVpar.c[i] <- mean(XVpar9.c$depth[(cov9.cp$end.c[i]-2):(cov9.cp$end.c[i])])
-  }else{
-    cov9.cp$depth.cer.c[i] <- mean(cer9.c$depth[(cov9.cp$start.c[i]):(cov9.cp$start.c[i]+2)])
-    cov9.cp$depth.IXpar.c[i] <- mean(IXpar9.c$depth[(cov9.cp$start.c[i]):(cov9.cp$start.c[i]+2)])
-    cov9.cp$depth.Xpar.c[i] <- mean(Xpar9.c$depth[(cov9.cp$start.c[i]):(cov9.cp$start.c[i]+2)])
-    cov9.cp$depth.XVpar.c[i] <- mean(XVpar9.c$depth[(cov9.cp$start.c[i]):(cov9.cp$start.c[i]+2)])
-  }
-  if(cov9.cp$strand.p[i]=="-"){
-    cov9.cp$depth.cer.p[i] <- mean(cer9.p$depth[(cov9.cp$end.p[i]-2):(cov9.cp$end.p[i])])
-    cov9.cp$depth.IXpar.p[i] <- mean(IXpar9.p$depth[(cov9.cp$end.p[i]-2):(cov9.cp$end.p[i])])
-    cov9.cp$depth.Xpar.p[i] <- mean(Xpar9.p$depth[(cov9.cp$end.p[i]-2):(cov9.cp$end.p[i])])
-    cov9.cp$depth.XVpar.p[i] <- mean(XVpar9.p$depth[(cov9.cp$end.p[i]-2):(cov9.cp$end.p[i])])
-  }else{
-    cov9.cp$depth.cer.p[i] <- mean(cer9.p$depth[(cov9.cp$start.p[i]):(cov9.cp$start.p[i]+2)])
-    cov9.cp$depth.IXpar.p[i] <- mean(IXpar9.p$depth[(cov9.cp$start.p[i]):(cov9.cp$start.p[i]+2)])
-    cov9.cp$depth.Xpar.p[i] <- mean(Xpar9.p$depth[(cov9.cp$start.p[i]):(cov9.cp$start.p[i]+2)])
-    cov9.cp$depth.XVpar.p[i] <- mean(XVpar9.p$depth[(cov9.cp$start.p[i]):(cov9.cp$start.p[i]+2)])
-  }
-}
 
 #take a look at it
-plot(cov9.cp$depth.cer.c, type="l")
-lines(cov9.cp$depth.cer.p, col="pink", lty=2)
-lines(cov9.cp$depth.IXpar.c, col="blue")
-lines(cov9.cp$depth.IXpar.p, col="purple", lty=2)
-lines(cov9.cp$depth.Xpar.c, col="green")
-lines(cov9.cp$depth.Xpar.p, col="darkgreen", lty=2)
-lines(cov9.cp$depth.XVpar.c, col="red")
-lines(cov9.cp$depth.XVpar.p, col="darkred", lty=2)
+plot(cov9.cp$start.c, cov9.cp$depth.cer.c, type="l", ylim=c(0,600))
+lines(cov9.cp$start.c, cov9.cp$depth.cer.p, col="pink", lty=2)
+lines(cov9.cp$start.c,cov9.cp$depth.IXpar.c, col="blue")
+lines(cov9.cp$start.c,cov9.cp$depth.IXpar.p, col="purple", lty=2)
+lines(cov9.cp$start.c,cov9.cp$depth.Xpar.c, col="green")
+lines(cov9.cp$start.c,cov9.cp$depth.Xpar.p, col="darkgreen", lty=2)
+lines(cov9.cp$start.c,cov9.cp$depth.XVpar.c, col="red")
+lines(cov9.cp$start.c,cov9.cp$depth.XVpar.p, col="darkred", lty=2)
+lines(cov9.cp$start.c,cov9.cp$depth.A1.c, col="black", lwd=2)
+lines(cov9.cp$start.c,cov9.cp$depth.A1.p, col="black", lwd=2, lty=2)
+lines(cov9.cp$start.c,cov9.cp$depth.A2.c, col="blue", lwd=2)
+lines(cov9.cp$start.c,cov9.cp$depth.A2.p, col="blue", lty=2, lwd=2)
 
-#pull out only genes
-row_odd <- seq_len(nrow(cov9.cp)) %% 2
-cov9.cp.genes <- cov9.cp[row_odd==0,]
-
-#plot just gene info
-plot(cov9.cp.genes$depth.cer.c, type="l", ylim=c(0,50))
-lines(cov9.cp.genes$depth.cer.p, col="pink", lty=2)
-lines(cov9.cp.genes$depth.IXpar.c, col="blue")
-lines(cov9.cp.genes$depth.IXpar.p, col="purple", lty=2)
-lines(cov9.cp.genes$depth.Xpar.c, col="green")
-lines(cov9.cp.genes$depth.Xpar.p, col="darkgreen", lty=2)
-lines(cov9.cp.genes$depth.XVpar.c, col="red")
-lines(cov9.cp.genes$depth.XVpar.p, col="darkred", lty=2)
-#gets rid of some peaks but not much diff otherwise
 
 #####only find region of interest - region A####
 #region A - start
 grep("YIL166C", cov9.cp$ID)
-#2
-abline(v=2, lty=2, col="forestgreen")
+#1
+abline(v=cov9.cp$start.c[1], lty=2, col="forestgreen")
 #end
 grep("YIL156W", cov9.cp$ID)
-cov9.cp[22:26,]
-#26 real one
-abline(v=26, lty=2, col="forestgreen")
+cov9.cp[11:13,]
+#13 real one
+abline(v=cov9.cp$start.c[13], lty=2, col="forestgreen")
 #region with rec selected - start
 grep("YIL151C", cov9.cp$ID)
-#36
-abline(v=36, lty=4, col="purple")
+#18
+abline(v=cov9.cp$start.c[18], lty=4, col="purple")
 #end
 grep("YIL169C", cov9.cp$ID)
 #not there - just the end somewhere?
 
 #make cut down data frame for just the region of interest (where rec selected)
-cov9.cp.A <- cov9.cp[1:36,]
-cov9.cp.A.genes <- cov9.cp.genes[1:18,]
-
+cov9.cp.A <- cov9.cp[1:18,]
 
 ##############Step 1: check for mismapping - A###########
-range(cov9.cp.A.genes$depth.cer.c)
-range(cov9.cp.A.genes$depth.cer.p)
-range(cov9.cp.A.genes$depth.IXpar.c)
-range(cov9.cp.A.genes$depth.IXpar.p)
-range(cov9.cp.A.genes$depth.Xpar.c)
-range(cov9.cp.A.genes$depth.Xpar.p)
-range(cov9.cp.A.genes$depth.XVpar.c)
-range(cov9.cp.A.genes$depth.XVpar.p)
+range(cov9.cp.A$depth.cer.c)
+range(cov9.cp.A$depth.cer.p)
+range(cov9.cp.A$depth.IXpar.c)
+range(cov9.cp.A$depth.IXpar.p)
+range(cov9.cp.A$depth.Xpar.c)
+range(cov9.cp.A$depth.Xpar.p)
+range(cov9.cp.A$depth.XVpar.c)
+range(cov9.cp.A$depth.XVpar.p)
 #no mismapping
 
 #plots
 #all blocks
-plot(cov9.cp.A$depth.cer.c, type="l", ylim=c(0,100))
-lines(cov9.cp.A$depth.cer.p, col="red", lty=2)
-lines(cov9.cp.A$depth.IXpar.c, col="black")
-lines(cov9.cp.A$depth.IXpar.p, col="red", lty=2)
-lines(cov9.cp.A$depth.Xpar.c, col="black")
-lines(cov9.cp.A$depth.Xpar.p, col="red", lty=2)
-lines(cov9.cp.A$depth.XVpar.c, col="black")
-lines(cov9.cp.A$depth.XVpar.p, col="red", lty=2)
-
-#only genes
-plot(cov9.cp.A.genes$depth.cer.c, type="l", ylim=c(0,100))
-lines(cov9.cp.A.genes$depth.cer.p, col="red", lty=2)
-lines(cov9.cp.A.genes$depth.IXpar.c, col="black")
-lines(cov9.cp.A.genes$depth.IXpar.p, col="red", lty=2)
-lines(cov9.cp.A.genes$depth.Xpar.c, col="black")
-lines(cov9.cp.A.genes$depth.Xpar.p, col="red", lty=2)
-lines(cov9.cp.A.genes$depth.XVpar.c, col="black")
-lines(cov9.cp.A.genes$depth.XVpar.p, col="red", lty=2)
+plot(cov9.cp.A$start.c, cov9.cp.A$depth.cer.c, type="l", ylim=c(0,100))
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.cer.p, col="red", lty=2)
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.IXpar.c, col="black")
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.IXpar.p, col="red", lty=2)
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.Xpar.c, col="black")
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.Xpar.p, col="red", lty=2)
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.XVpar.c, col="black")
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.XVpar.p, col="red", lty=2)
 #pattern not exactly the same with different cerevisiae
 
 
-#########find DNA loading correction - chr1, 2, 3, 4, 5, 6, 7, 8, 11, 13, 14, 16########
+#########Step 2:find DNA loading correction - just chr4 for now##########
+#' if want all: chr1, 2, 3, 4, 5, 6, 7, 8, 11, 13, 14, 16########
 #limit to only genes on chr interested in
-genes_rest.c <- subset(genes.c, seqid%in%c("chr01","chr02","chr03","chr04","chr05","chr06","chr07","chr08","chr11","chr13","chr14","chr16"))
-genes_rest.p <- subset(genes.p, seqid%in%c("chr01","chr02","chr03","chr04","chr05","chr06","chr07","chr08","chr11","chr13","chr14","chr16"))
-
+genes4.c <- subset(genes.c, seqid=="chr04")
+genes4.p <- subset(genes.p, seqid=="chr04")
 
 #find which genes in both and in same order
-c.geneind_rest <-c()
-for (i in 1:length(genes_rest.c$ID)){
-  c.geneind_rest <- c(c.geneind_rest, which(genes_rest.c$ID%in%genes_rest.p$ID[i]))
+c.geneind4 <-c()
+for (i in 1:length(genes4.c$ID)){
+  c.geneind4 <- c(c.geneind4, which(genes4.c$ID%in%genes4.p$ID[i]))
 }
 
 #in order
-is.sorted(c.geneind_rest)
+is.sorted(c.geneind4)
 
 #make n17 (par) equivalent
-p.geneind_rest <- c()
-for (i in 1:length(c.geneind_rest)){
-  id <- as.character(genes_rest.c$ID[c.geneind_rest[i]])
-  p.geneind_rest <- c(p.geneind_rest, which(genes_rest.p$ID==id))
+p.geneind4 <- c()
+for (i in 1:length(c.geneind4)){
+  id <- as.character(genes4.c$ID[c.geneind4[i]])
+  p.geneind4 <- c(p.geneind4, which(genes4.p$ID==id))
 }
 #in order
-is.sorted(p.geneind_rest)
+is.sorted(p.geneind4)
 
 #pull out only genes that are in both
-genes.c.both_rest <- genes_rest.c[c.geneind_rest,]
-genes.p.both_rest <- genes_rest.p[p.geneind_rest,]
+genes.c.both4 <- genes4.c[c.geneind4,]
+genes.p.both4 <- genes4.p[p.geneind4,]
 
 #make data frame with genes only
-cov_rest.cp <- merge(select(genes.c.both_rest, seqid, start, end, strand, ID), select(genes.p.both_rest, seqid, start, end, strand, ID), by=c("seqid","ID"))
-names(cov_rest.cp) <- c("seqid","ID","start.c","end.c","strand.c","start.p","end.p","strand.p")
+cov4.cp <- merge(select(genes.c.both4, seqid, ID, start, end, strand), select(genes.p.both4, seqid, ID, start, end, strand), by=c("seqid","ID"))
+names(cov4.cp) <- c("seqid","ID","start.c","end.c","strand.c","start.p","end.p","strand.p")
+#'reorder
+cov4.cp <- cov4.cp[order(cov4.cp$start.c),]
 
-#######here#########
+#'#get depth of A, T, G (or first 3 bases)
+cov4.cp <- get_cov_gene(cov4.cp, "depth.cer.c", "depth.cer.p", cer, "chr04")
+cov4.cp <- get_cov_gene(cov4.cp, "depth.IXpar.c", "depth.IXpar.p", IXpar, "chr04")
+cov4.cp <- get_cov_gene(cov4.cp, "depth.Xpar.c", "depth.Xpar.p", Xpar, "chr04")
+cov4.cp <- get_cov_gene(cov4.cp, "depth.XVpar.c", "depth.XVpar.p", XVpar, "chr04")
 
-cer9.c <- subset(cer, Chr=="W303.chr09")
-cer9.p <- subset(cer, Chr=="N_17.chr09")
-IXpar9.c <- subset(IXpar, Chr=="W303.chr09")
-IXpar9.p <- subset(IXpar, Chr=="N_17.chr09")
-Xpar9.c <- subset(Xpar, Chr=="W303.chr09")
-Xpar9.p <- subset(Xpar, Chr=="N_17.chr09")
-XVpar9.c <- subset(XVpar, Chr=="W303.chr09")
-XVpar9.p <- subset(XVpar, Chr=="N_17.chr09")
+#take a look at it
+plot(cov4.cp$start.c, cov4.cp$depth.cer.c, type="l", ylim=c(0,50))
+lines(cov4.cp$start.c, cov4.cp$depth.cer.p, col="pink", lty=2)
+lines(cov4.cp$start.c,cov4.cp$depth.IXpar.c, col="blue")
+lines(cov4.cp$start.c,cov4.cp$depth.IXpar.p, col="purple", lty=2)
+lines(cov4.cp$start.c,cov4.cp$depth.Xpar.c, col="green")
+lines(cov4.cp$start.c,cov4.cp$depth.Xpar.p, col="darkgreen", lty=2)
+lines(cov4.cp$start.c,cov4.cp$depth.XVpar.c, col="red")
+lines(cov4.cp$start.c,cov4.cp$depth.XVpar.p, col="darkred", lty=2)
+
+#'check for mismapping
+range(cov4.cp$depth.cer.c)
+range(cov4.cp$depth.cer.p)
+#mismapping - delete these
+cov4.cp <- cov4.cp[-which(cov4.cp$depth.cer.p>0),]
+
+range(cov4.cp$depth.IXpar.c)
+range(cov4.cp$depth.IXpar.p)
+#mismapping - delete these
+cov4.cp <- cov4.cp[-which(cov4.cp$depth.IXpar.p>0),]
+
+range(cov4.cp$depth.Xpar.c)
+range(cov4.cp$depth.Xpar.p)
+#mismapping - delete these
+cov4.cp <- cov4.cp[-which(cov4.cp$depth.Xpar.p>0),]
+
+range(cov4.cp$depth.XVpar.c)
+#mismapping - delete these
+cov4.cp <- cov4.cp[-which(cov4.cp$depth.XVpar.p>0),]
+
+#plots
+#all blocks
+plot(cov4.cp$start.c, cov4.cp$depth.cer.c, type="l", ylim=c(0,100))
+lines(cov4.cp$start.c,cov4.cp$depth.cer.p, col="red", lty=2)
+lines(cov4.cp$start.c,cov4.cp$depth.IXpar.c, col="black")
+lines(cov4.cp$start.c,cov4.cp$depth.IXpar.p, col="red", lty=2)
+lines(cov4.cp$start.c,cov4.cp$depth.Xpar.c, col="black")
+lines(cov4.cp$start.c,cov4.cp$depth.Xpar.p, col="red", lty=2)
+lines(cov4.cp$start.c,cov4.cp$depth.XVpar.c, col="black")
+lines(cov4.cp$start.c,cov4.cp$depth.XVpar.p, col="red", lty=2)
+#pattern not exactly the same with different cerevisiae
+
+#do calculation
+#region A - chr9, w303
+#add up coverage for all genes in control chromosomes
+w303_dnaload_sum <- sum(cov4.cp$depth.cer.c)
+IX_dnaload_sum <- sum(cov4.cp$depth.IXpar.c)
+
+#do calculation: (cov other parent)/(cov focal parent) * (cov of gene X in focal parent) = corrected coverage of gene X in focal parent
+#find ratios
+ratio_w303overIX <- w303_dnaload_sum/IX_dnaload_sum
+ratio_IXoverw303 <- IX_dnaload_sum/w303_dnaload_sum
+#get corrected coverage
+cov9.cp.A$DNA_corr.cer.c <- cov9.cp.A$depth.cer.c*ratio_IXoverw303
+cov9.cp.A$DNA_corr.IXpar.p <- cov9.cp.A$depth.IXpar.p*ratio_w303overIX
+
+######3) calculate global expected value (again for each parent pair)#######
+#(add up coverage of all genes in region)/(number of genes in region) = global expected value
+global_exp9 <- sum(cov9.cp.A$DNA_corr.cer.c, cov9.cp.A$DNA_corr.IXpar.p)/(length(cov9.cp.A$DNA_corr.IXpar.p)*2)
+
+####4) for each gene in experimental data, correct cerevisiae and paradoxus coverage separately using:########
+#(Global expected value)/(Corrected gene in that parent) * Observed coverage
+cov9.cp.A$depth.A1.c_corr <- (global_exp9/cov9.cp.A$DNA_corr.cer.c)*cov9.cp.A$depth.A1.c
+cov9.cp.A$depth.A2.c_corr <- (global_exp9/cov9.cp.A$DNA_corr.cer.c)*cov9.cp.A$depth.A2.c
+cov9.cp.A$depth.A1.p_corr <- (global_exp9/cov9.cp.A$DNA_corr.IXpar.p)*cov9.cp.A$depth.A1.p
+cov9.cp.A$depth.A2.p_corr <- (global_exp9/cov9.cp.A$DNA_corr.IXpar.p)*cov9.cp.A$depth.A2.p
 
 
-test <- get_cov_gene(cov_rest.cp, "depth.cer.c", "depth.cer.p", cer, "chr01")
+plot(cov9.cp.A$start.c, cov9.cp.A$depth.A1.c, type="l", ylim=c(0,600))
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.A1.p, col="red", lty=2)
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.A2.c, col="black")
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.A2.p, col="red", lty=2)
+lines(cov9.cp.A$start.c, cov9.cp.A$depth.A1.c_corr, col="blue")
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.A1.p_corr, col="purple", lty=2)
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.A2.c_corr, col="blue")
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.A2.p_corr, col="purple", lty=2)
+plot(cov9.cp.A$start.c,cov9.cp.A$depth.A2.p_corr/cov9.cp.A$depth.A2.c_corr, col="green", lty=2, ylim=c(0,30), type="l")
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.A1.p_corr/cov9.cp.A$depth.A1.c_corr, col="green", lty=2)
+
+plot(cov9.cp.A$start.c,cov9.cp.A$depth.A2.p/cov9.cp.A$depth.A2.c, col="green", lty=2, ylim=c(0,30), type="l")
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.A1.p/cov9.cp.A$depth.A1.c, col="green", lty=2)
 
 
+######here########
 
 
+do for all genes in region for both parents
 
-#get coverage for genes
-cov_rest.cp$depth.cer.c <- 0
-cov_rest.cp$depth.cer.p <- 0
-cov_rest.cp$depth.IXpar.c <- 0
-cov_rest.cp$depth.IXpar.p <- 0
-cov_rest.cp$depth.Xpar.c <- 0
-cov_rest.cp$depth.Xpar.p <- 0
-cov_rest.cp$depth.XVpar.c <- 0
-cov_rest.cp$depth.XVpar.p <- 0
-for (i in 1:length(cov_rest.cp$ID)){
-  if(cov_rest.cp$strand.c[i]=="-"){
-    cov_rest.cp$depth.cer.c[i] <- mean(cer.c$depth[(cov9.cp$end.c[i]-2):(cov9.cp$end.c[i])])
-    cov_rest.cp$depth.IXpar.c[i] <- mean(IXpar9.c$depth[(cov9.cp$end.c[i]-2):(cov9.cp$end.c[i])])
-    cov_rest.cp$depth.Xpar.c[i] <- mean(Xpar9.c$depth[(cov9.cp$end.c[i]-2):(cov9.cp$end.c[i])])
-    cov_rest.cp$depth.XVpar.c[i] <- mean(XVpar9.c$depth[(cov9.cp$end.c[i]-2):(cov9.cp$end.c[i])])
-  }else{
-    cov9.cp$depth.cer.c[i] <- mean(cer9.c$depth[(cov9.cp$start.c[i]):(cov9.cp$start.c[i]+2)])
-    cov9.cp$depth.IXpar.c[i] <- mean(IXpar9.c$depth[(cov9.cp$start.c[i]):(cov9.cp$start.c[i]+2)])
-    cov9.cp$depth.Xpar.c[i] <- mean(Xpar9.c$depth[(cov9.cp$start.c[i]):(cov9.cp$start.c[i]+2)])
-    cov9.cp$depth.XVpar.c[i] <- mean(XVpar9.c$depth[(cov9.cp$start.c[i]):(cov9.cp$start.c[i]+2)])
-  }
-  if(cov9.cp$strand.p[i]=="-"){
-    cov9.cp$depth.cer.p[i] <- mean(cer9.p$depth[(cov9.cp$end.p[i]-2):(cov9.cp$end.p[i])])
-    cov9.cp$depth.IXpar.p[i] <- mean(IXpar9.p$depth[(cov9.cp$end.p[i]-2):(cov9.cp$end.p[i])])
-    cov9.cp$depth.Xpar.p[i] <- mean(Xpar9.p$depth[(cov9.cp$end.p[i]-2):(cov9.cp$end.p[i])])
-    cov9.cp$depth.XVpar.p[i] <- mean(XVpar9.p$depth[(cov9.cp$end.p[i]-2):(cov9.cp$end.p[i])])
-  }else{
-    cov9.cp$depth.cer.p[i] <- mean(cer9.p$depth[(cov9.cp$start.p[i]):(cov9.cp$start.p[i]+2)])
-    cov9.cp$depth.IXpar.p[i] <- mean(IXpar9.p$depth[(cov9.cp$start.p[i]):(cov9.cp$start.p[i]+2)])
-    cov9.cp$depth.Xpar.p[i] <- mean(Xpar9.p$depth[(cov9.cp$start.p[i]):(cov9.cp$start.p[i]+2)])
-    cov9.cp$depth.XVpar.p[i] <- mean(XVpar9.p$depth[(cov9.cp$start.p[i]):(cov9.cp$start.p[i]+2)])
-  }
-}
+
 
 
 
