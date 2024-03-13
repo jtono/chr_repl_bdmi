@@ -11,7 +11,7 @@ get_cov_gene <- function(genedatfr, colname.c, colname.p, coverage, chr){
 
   genedatfr[[colname.c]] <- 0
   genedatfr[[colname.p]] <- 0
-  for (i in 1:length(genedatfr$ID)){
+  for (i in 1:length(genedatfr[,1])){
     if(genedatfr$strand.c[i]=="-"){
       genedatfr[[colname.c]][i] <- mean(cov.c$depth[(genedatfr$end.c[i]-2):(genedatfr$end.c[i])])
     }else{
@@ -94,28 +94,33 @@ is.sorted(p.geneind9)
 genes.c.both9 <- genes9.c[c.geneind9,]
 genes.p.both9 <- genes9.p[p.geneind9,]
 
-#make data frame with genes and between genes regions
+######fix this!!########
+#make data frame with gene regions
 ID <- 1
+seqid <- c()
 start.c <- 1
 end.c <- c()
 start.p <- 1
 end.p <- c()
-strand.c <- "X"
-strand.p <- "X"
+strand.c <- ""
+strand.p <- ""
 for (i in 1:length(genes.c.both9$X)){
-  ID <- c(ID, as.character(genes.c.both9$ID[i]), i+1)
-  start.c <- c(start.c, genes.c.both9$start[i], (genes.c.both9$end[i]+1))
-  end.c <- c(end.c, (genes.c.both9$start[i]-1), genes.c.both9$end[i])
-  start.p <- c(start.p, genes.p.both9$start[i], (genes.p.both9$end[i]+1))
-  end.p <- c(end.p, (genes.p.both9$start[i]-1), genes.p.both9$end[i])
-  strand.c <- c(strand.c, genes.c.both9$strand[i], "X")
-  strand.p <- c(strand.p, genes.p.both9$strand[i], "X")
+  ID <- c(ID, as.character(genes.c.both9$ID[i]))
+  seqid <- c(seqid, genes.c.both9$seqid[i])
+  start.c <- c(start.c, genes.c.both9$start[i])
+  end.c <- c(end.c, (genes.c.both9$start[i]-1))
+  start.p <- c(start.p, genes.p.both9$start[i])
+  end.p <- c(end.p, (genes.p.both9$start[i]-1))
+  strand.c <- c(strand.c, genes.c.both9$strand[i])
+  strand.p <- c(strand.p, genes.p.both9$strand[i])
 }
 cer9.c <- subset(cer, Chr=="W303.chr09")
 cer9.p <- subset(cer, Chr=="N_17.chr09")
 end.c <- c(end.c, max(cer9.c$locus))
 end.p <- c(end.p, max(cer9.p$locus))
-cov9.cp <- data.frame(start.c, end.c, strand.c, start.p, end.p, strand.p)
+cov9.cp <- data.frame(ID, seqid, start.c, end.c, strand.c, start.p, end.p, strand.p)
+#'remove last gene - beyond mapping of genomes
+cov9.cp <- cov9.cp[1:450,]
 
 #########figure out coverage of each gene for each sample - region A######
 #pull out only chr of interest
@@ -130,6 +135,10 @@ Xpar9.p <- subset(Xpar, Chr=="N_17.chr09")
 XVpar9.c <- subset(XVpar, Chr=="W303.chr09")
 XVpar9.p <- subset(XVpar, Chr=="N_17.chr09")
 
+#####here########
+
+cov9.cp2 <- get_cov_gene(cov9.cp, "depth.cer.c", "depth.cer.p", cer, "chr09")
+
 
 #get depth of A, T, G (or first 3 bases)
 cov9.cp$depth.cer.c <- 0
@@ -140,7 +149,7 @@ cov9.cp$depth.Xpar.c <- 0
 cov9.cp$depth.Xpar.p <- 0
 cov9.cp$depth.XVpar.c <- 0
 cov9.cp$depth.XVpar.p <- 0
-for (i in 1:length(cov9.cp$ID)){
+for (i in 1:length(cov9.cp$start.c)){
   if(cov9.cp$strand.c[i]=="-"){
     cov9.cp$depth.cer.c[i] <- mean(cer9.c$depth[(cov9.cp$end.c[i]-2):(cov9.cp$end.c[i])])
     cov9.cp$depth.IXpar.c[i] <- mean(IXpar9.c$depth[(cov9.cp$end.c[i]-2):(cov9.cp$end.c[i])])
@@ -164,13 +173,6 @@ for (i in 1:length(cov9.cp$ID)){
     cov9.cp$depth.XVpar.p[i] <- mean(XVpar9.p$depth[(cov9.cp$start.p[i]):(cov9.cp$start.p[i]+2)])
   }
 }
-
-######test here#########
-
-  cov9.cp$seqid <- "chr09"
-test <- get_cov_gene(cov9.cp, "depth.cer.c2", "depth.cer.p2", cer, "chr09")
-
-#########test here#########
 
 #take a look at it
 plot(cov9.cp$depth.cer.c, type="l")
