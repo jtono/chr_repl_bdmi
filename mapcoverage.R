@@ -261,18 +261,26 @@ lines(cov4.cp$start.c,cov4.cp$depth.XVpar.p, col="red", lty=2)
 #add up coverage for all genes in control chromosomes
 w303_dnaload_sum <- sum(cov4.cp$depth.cer.c)
 IX_dnaload_sum <- sum(cov4.cp$depth.IXpar.c)
+test_w303_dnaload_sum <- 12
+test_IX_dnaload_sum <- 26
 
 #do calculation: (cov other parent)/(cov focal parent) * (cov of gene X in focal parent) = corrected coverage of gene X in focal parent
 #find ratios
 ratio_w303overIX <- w303_dnaload_sum/IX_dnaload_sum
 ratio_IXoverw303 <- IX_dnaload_sum/w303_dnaload_sum
+test_ratio_w303overIX <- test_w303_dnaload_sum/test_IX_dnaload_sum
+test_ratio_IXoverw303 <- test_IX_dnaload_sum/test_w303_dnaload_sum
 #get corrected coverage
 cov9.cp.A$DNA_corr.cer.c <- cov9.cp.A$depth.cer.c*ratio_IXoverw303
 cov9.cp.A$DNA_corr.IXpar.p <- cov9.cp.A$depth.IXpar.p*ratio_w303overIX
+test_cov <- data.frame(depth.cer.c=c(2,4), depth.IXpar.p=c(4,16))
+test_cov$DNA_corr.cer.c <- test_cov$depth.cer.c*test_ratio_IXoverw303
+test_cov$DNA_corr.IXpar.p <- test_cov$depth.IXpar.p*test_ratio_w303overIX
 
 ######3) calculate global expected value (again for each parent pair)#######
 #(add up coverage of all genes in region)/(number of genes in region) = global expected value
 global_exp9 <- sum(cov9.cp.A$DNA_corr.cer.c, cov9.cp.A$DNA_corr.IXpar.p)/(length(cov9.cp.A$DNA_corr.IXpar.p)*2)
+test_global_exp <- sum(test_cov$DNA_corr.cer.c, test_cov$DNA_corr.IXpar.p)/(length(test_cov$DNA_corr.IXpar.p)*2)
 
 ####4) for each gene in experimental data, correct cerevisiae and paradoxus coverage separately using:########
 #(Global expected value)/(Corrected gene in that parent) * Observed coverage
@@ -281,21 +289,269 @@ cov9.cp.A$depth.A2.c_corr <- (global_exp9/cov9.cp.A$DNA_corr.cer.c)*cov9.cp.A$de
 cov9.cp.A$depth.A1.p_corr <- (global_exp9/cov9.cp.A$DNA_corr.IXpar.p)*cov9.cp.A$depth.A1.p
 cov9.cp.A$depth.A2.p_corr <- (global_exp9/cov9.cp.A$DNA_corr.IXpar.p)*cov9.cp.A$depth.A2.p
 
+test_cov$depth.s1.c <- c(9, 12)
+test_cov$depth.s1.p <- c(5,3)
 
-plot(cov9.cp.A$start.c, cov9.cp.A$depth.A1.c, type="l", ylim=c(0,600))
+test_cov$depth.s1.c_corr <- (test_global_exp/test_cov$DNA_corr.cer.c)*test_cov$depth.s1.c
+test_cov$depth.s1.p_corr <- (test_global_exp/test_cov$DNA_corr.IXpar.p)*test_cov$depth.s1.p
+test_cov$depth.s1.c_corr/(test_cov$depth.s1.p_corr+test_cov$depth.s1.c_corr)
+
+plot(cov9.cp.A$start.c, cov9.cp.A$depth.A1.c, type="l", ylim=c(0,600), lty=2)
 lines(cov9.cp.A$start.c,cov9.cp.A$depth.A1.p, col="red", lty=2)
-lines(cov9.cp.A$start.c,cov9.cp.A$depth.A2.c, col="black")
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.A2.c, col="black", lty=2)
 lines(cov9.cp.A$start.c,cov9.cp.A$depth.A2.p, col="red", lty=2)
 lines(cov9.cp.A$start.c, cov9.cp.A$depth.A1.c_corr, col="blue")
-lines(cov9.cp.A$start.c,cov9.cp.A$depth.A1.p_corr, col="purple", lty=2)
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.A1.p_corr, col="purple")
 lines(cov9.cp.A$start.c,cov9.cp.A$depth.A2.c_corr, col="blue")
-lines(cov9.cp.A$start.c,cov9.cp.A$depth.A2.p_corr, col="purple", lty=2)
-plot(cov9.cp.A$start.c,cov9.cp.A$depth.A2.p_corr/cov9.cp.A$depth.A2.c_corr, col="green", lty=2, ylim=c(0,30), type="l")
-lines(cov9.cp.A$start.c,cov9.cp.A$depth.A1.p_corr/cov9.cp.A$depth.A1.c_corr, col="green", lty=2)
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.A2.p_corr, col="purple")
 
-plot(cov9.cp.A$start.c,cov9.cp.A$depth.A2.p/cov9.cp.A$depth.A2.c, col="green", lty=2, ylim=c(0,30), type="l")
-lines(cov9.cp.A$start.c,cov9.cp.A$depth.A1.p/cov9.cp.A$depth.A1.c, col="green", lty=2)
+plot(cov9.cp.A$start.c,cov9.cp.A$depth.A2.p_corr/(cov9.cp.A$depth.A2.c_corr+cov9.cp.A$depth.A2.p_corr), col="black", ylim=c(0,1), type="l")
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.A1.p_corr/(cov9.cp.A$depth.A1.c_corr+cov9.cp.A$depth.A1.p_corr), col="black")
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.A2.p/(cov9.cp.A$depth.A2.c+cov9.cp.A$depth.A2.p), col="blue", lty=2)
+lines(cov9.cp.A$start.c,cov9.cp.A$depth.A1.p/(cov9.cp.A$depth.A1.c+cov9.cp.A$depth.A1.p), col="blue", lty=2)
 
+#####F samples#######
+F1 <- read.table("coverage/F1.coverage",header=FALSE, sep="\t", na.strings="NA", dec=".", strip.white=TRUE)
+# renames the header
+F1 <- rename(F1, c("Chr"=V1, "locus"=V2, "depth"=V3))
+
+F2 <- read.table("coverage/F2.coverage",header=FALSE, sep="\t", na.strings="NA", dec=".", strip.white=TRUE)
+# renames the header
+F2 <- rename(F2, c("Chr"=V1, "locus"=V2, "depth"=V3))
+
+#########find genes for region F - chr15########
+#limit to only genes on chr interested in
+genes15.c <- subset(genes.c, seqid=="chr15")
+genes15.p <- subset(genes.p, seqid=="chr15")
+
+
+#find which genes in both and in same order
+c.geneind15 <-c()
+for (i in 1:length(genes15.c$ID)){
+  c.geneind15 <- c(c.geneind15, which(genes15.c$ID%in%genes15.p$ID[i]))
+}
+
+#in order
+is.sorted(c.geneind15)
+
+#make n17 (par) equivalent
+p.geneind15 <- c()
+for (i in 1:length(c.geneind15)){
+  id <- as.character(genes15.c$ID[c.geneind15[i]])
+  p.geneind15 <- c(p.geneind15, which(genes15.p$ID==id))
+}
+#in order
+is.sorted(p.geneind15)
+
+#pull out only genes that are in both
+genes.c.both15 <- genes15.c[c.geneind15,]
+genes.p.both15 <- genes15.p[p.geneind15,]
+
+
+#make data frame with gene regions
+cov15.cp <- merge(select(genes.c.both15, seqid, ID, start, end, strand), select(genes.p.both15, seqid, ID, start, end, strand), by=c("seqid","ID"))
+names(cov15.cp) <- c("seqid","ID","start.c","end.c","strand.c","start.p","end.p","strand.p")
+#'reorder
+cov15.cp <- cov15.cp[order(cov15.cp$start.c),]
+
+#########figure out coverage of each gene for each sample - region F######
+#'for F - chr15
+#'#get depth of A, T, G (or first 3 bases)
+cov15.cp <- get_cov_gene(cov15.cp, "depth.cer.c", "depth.cer.p", cer, "chr15")
+cov15.cp <- get_cov_gene(cov15.cp, "depth.IXpar.c", "depth.IXpar.p", IXpar, "chr15")
+cov15.cp <- get_cov_gene(cov15.cp, "depth.Xpar.c", "depth.Xpar.p", Xpar, "chr15")
+cov15.cp <- get_cov_gene(cov15.cp, "depth.XVpar.c", "depth.XVpar.p", XVpar, "chr15")
+cov15.cp <- get_cov_gene(cov15.cp, "depth.F1.c", "depth.F1.p", F1, "chr15")
+cov15.cp <- get_cov_gene(cov15.cp, "depth.F2.c", "depth.F2.p", F2, "chr15")
+
+
+#take a look at it
+plot(cov15.cp$start.c, cov15.cp$depth.cer.c, type="l", ylim=c(0,2000))
+lines(cov15.cp$start.c, cov15.cp$depth.cer.p, col="pink", lty=2)
+lines(cov15.cp$start.c,cov15.cp$depth.IXpar.c, col="blue")
+lines(cov15.cp$start.c,cov15.cp$depth.IXpar.p, col="purple", lty=2)
+lines(cov15.cp$start.c,cov15.cp$depth.Xpar.c, col="green")
+lines(cov15.cp$start.c,cov15.cp$depth.Xpar.p, col="darkgreen", lty=2)
+lines(cov15.cp$start.c,cov15.cp$depth.XVpar.c, col="red")
+lines(cov15.cp$start.c,cov15.cp$depth.XVpar.p, col="darkred", lty=2)
+lines(cov15.cp$start.c,cov15.cp$depth.F1.c, col="black", lwd=2)
+lines(cov15.cp$start.c,cov15.cp$depth.F1.p, col="black", lwd=2, lty=2)
+lines(cov15.cp$start.c,cov15.cp$depth.F2.c, col="blue", lwd=2)
+lines(cov15.cp$start.c,cov15.cp$depth.F2.p, col="blue", lty=2, lwd=2)
+
+
+#####only find region of interest - region F####
+#region F - start
+grep("YOL138C", cov15.cp$ID)
+#24
+abline(v=cov15.cp$start.c[24], lty=2, col="forestgreen")
+#end
+grep("YOL024W", cov15.cp$ID)
+#140
+abline(v=cov15.cp$start.c[140], lty=2, col="forestgreen")
+#region with rec selected - start
+grep("YOL141W", cov15.cp$ID)
+#21
+abline(v=cov15.cp$start.c[21], lty=4, col="purple")
+#end
+grep("YOL020W", cov15.cp$ID)
+#144
+abline(v=cov15.cp$start.c[144], lty=4, col="purple")
+
+#make cut down data frame for just the region of interest (where rec selected)
+cov15.cp.F <- cov15.cp[21:144,]
+
+##############Step 1: check for mismapping - F###########
+range(cov15.cp.F$depth.cer.c)
+range(cov15.cp.F$depth.cer.p)
+#mismapping - delete these
+cov15.cp.F <- cov15.cp.F[-which(cov15.cp.F$depth.cer.p>0),]
+
+range(cov15.cp.F$depth.IXpar.c)
+range(cov15.cp.F$depth.IXpar.p)
+range(cov15.cp.F$depth.Xpar.c)
+range(cov15.cp.F$depth.Xpar.p)
+range(cov15.cp.F$depth.XVpar.c)
+#mismapping - delete these
+cov15.cp.F <- cov15.cp.F[-which(cov15.cp.F$depth.XVpar.c>0),]
+
+range(cov15.cp.F$depth.XVpar.p)
+
+
+#plots
+#all blocks
+plot(cov15.cp.F$start.c, cov15.cp.F$depth.cer.c, type="l", ylim=c(0,100))
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.cer.p, col="red", lty=2)
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.IXpar.c, col="black")
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.IXpar.p, col="red", lty=2)
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.Xpar.c, col="black")
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.Xpar.p, col="red", lty=2)
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.XVpar.c, col="black")
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.XVpar.p, col="red", lty=2)
+#pattern not exactly the same with different cerevisiae
+
+
+#########Step 2:find DNA loading correction - just chr4 for now##########
+#do calculation
+#region F - chr15, w303
+#add up coverage for all genes in control chromosomes
+#w303_dnaload_sum <- sum(cov4.cp$depth.cer.c)
+XV_dnaload_sum <- sum(cov4.cp$depth.XVpar.c)
+#test_w303_dnaload_sum <- 12
+#test_IX_dnaload_sum <- 26
+
+#do calculation: (cov other parent)/(cov focal parent) * (cov of gene X in focal parent) = corrected coverage of gene X in focal parent
+#find ratios
+ratio_w303overXV <- w303_dnaload_sum/XV_dnaload_sum
+ratio_XVoverw303 <- XV_dnaload_sum/w303_dnaload_sum
+#test_ratio_w303overIX <- test_w303_dnaload_sum/test_IX_dnaload_sum
+#test_ratio_IXoverw303 <- test_IX_dnaload_sum/test_w303_dnaload_sum
+#get corrected coverage
+cov15.cp.F$DNA_corr.cer.c <- cov15.cp.F$depth.cer.c*ratio_XVoverw303
+cov15.cp.F$DNA_corr.XVpar.p <- cov15.cp.F$depth.XVpar.p*ratio_w303overXV
+#test_cov <- data.frame(depth.cer.c=c(2,4), depth.IXpar.p=c(4,16))
+#test_cov$DNA_corr.cer.c <- test_cov$depth.cer.c*test_ratio_IXoverw303
+#test_cov$DNA_corr.IXpar.p <- test_cov$depth.IXpar.p*test_ratio_w303overIX
+
+######3) calculate global expected value (again for each parent pair)#######
+#(add up coverage of all genes in region)/(number of genes in region) = global expected value
+global_exp15 <- sum(cov15.cp.F$DNA_corr.cer.c, cov15.cp.F$DNA_corr.XVpar.p)/(length(cov15.cp.F$DNA_corr.XVpar.p)*2)
+#test_global_exp <- sum(test_cov$DNA_corr.cer.c, test_cov$DNA_corr.IXpar.p)/(length(test_cov$DNA_corr.IXpar.p)*2)
+
+####4) for each gene in experimental data, correct cerevisiae and paradoxus coverage separately using:########
+#(Global expected value)/(Corrected gene in that parent) * Observed coverage
+cov15.cp.F$depth.F1.c_corr <- (global_exp15/cov15.cp.F$DNA_corr.cer.c)*cov15.cp.F$depth.F1.c
+cov15.cp.F$depth.F2.c_corr <- (global_exp15/cov15.cp.F$DNA_corr.cer.c)*cov15.cp.F$depth.F2.c
+cov15.cp.F$depth.F1.p_corr <- (global_exp15/cov15.cp.F$DNA_corr.XVpar.p)*cov15.cp.F$depth.F1.p
+cov15.cp.F$depth.F2.p_corr <- (global_exp15/cov15.cp.F$DNA_corr.XVpar.p)*cov15.cp.F$depth.F2.p
+
+#test_cov$depth.s1.c <- c(9, 12)
+#test_cov$depth.s1.p <- c(5,3)
+
+#test_cov$depth.s1.c_corr <- (test_global_exp/test_cov$DNA_corr.cer.c)*test_cov$depth.s1.c
+#test_cov$depth.s1.p_corr <- (test_global_exp/test_cov$DNA_corr.IXpar.p)*test_cov$depth.s1.p
+#test_cov$depth.s1.c_corr/(test_cov$depth.s1.p_corr+test_cov$depth.s1.c_corr)
+
+plot(cov15.cp.F$start.c, cov15.cp.F$depth.F1.c, type="l", ylim=c(0,1500), lty=2)
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.F1.p, col="red", lty=2)
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.F2.c, col="black", lty=2)
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.F2.p, col="red", lty=2)
+lines(cov15.cp.F$start.c, cov15.cp.F$depth.F1.c_corr, col="blue")
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.F1.p_corr, col="purple")
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.F2.c_corr, col="blue")
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.F2.p_corr, col="purple")
+
+plot(cov15.cp.F$start.c,cov15.cp.F$depth.F2.p_corr/(cov15.cp.F$depth.F2.c_corr+cov15.cp.F$depth.F2.p_corr), col="black", ylim=c(0,1), type="l")
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.F1.p_corr/(cov15.cp.F$depth.F1.c_corr+cov15.cp.F$depth.F1.p_corr), col="black")
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.F2.p/(cov15.cp.F$depth.F2.c+cov15.cp.F$depth.F2.p), col="blue", lty=2)
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.F1.p/(cov15.cp.F$depth.F1.c+cov15.cp.F$depth.F1.p), col="blue", lty=2)
+
+
+#########TEEST Step 2:find DNA loading correction - just chr4 for now##########
+#do calculation
+#region F - chr15, w303
+#add up coverage for all genes in control chromosomes
+#w303_dnaload_sum <- sum(cov4.cp$depth.cer.c)
+XV_dnaload_sum <- sum(cov4.cp$depth.XVpar.c)
+s288c_dnaload_sum <- sum(cov4.cp$depth.IXpar.c)
+#test_w303_dnaload_sum <- 12
+#test_IX_dnaload_sum <- 26
+
+#do calculation: (cov other parent)/(cov focal parent) * (cov of gene X in focal parent) = corrected coverage of gene X in focal parent
+#find ratios
+ratio_w303overXV <- w303_dnaload_sum/XV_dnaload_sum
+ratio_XVoverw303 <- XV_dnaload_sum/w303_dnaload_sum
+ratio_XVovers228c <- XV_dnaload_sum/s288c_dnaload_sum
+#test_ratio_w303overIX <- test_w303_dnaload_sum/test_IX_dnaload_sum
+#test_ratio_IXoverw303 <- test_IX_dnaload_sum/test_w303_dnaload_sum
+#get corrected coverage
+cov15.cp.F$DNA_corr.cer.c <- cov15.cp.F$depth.cer.c*ratio_XVoverw303
+cov15.cp.F$DNA_corr.XVpar.p <- cov15.cp.F$depth.XVpar.p*ratio_w303overXV
+cov15.cp.F$DNA_corr.IXpar.c <- cov15.cp.F$depth.IXpar.c*ratio_XVovers228c
+#test_cov <- data.frame(depth.cer.c=c(2,4), depth.IXpar.p=c(4,16))
+#test_cov$DNA_corr.cer.c <- test_cov$depth.cer.c*test_ratio_IXoverw303
+#test_cov$DNA_corr.IXpar.p <- test_cov$depth.IXpar.p*test_ratio_w303overIX
+
+######3) calculate global expected value (again for each parent pair)#######
+#(add up coverage of all genes in region)/(number of genes in region) = global expected value
+global_exp15 <- sum(cov15.cp.F$DNA_corr.cer.c, cov15.cp.F$DNA_corr.XVpar.p)/(length(cov15.cp.F$DNA_corr.XVpar.p)*2)
+global_exp15s <- sum(cov15.cp.F$DNA_corr.IXpar.c, cov15.cp.F$DNA_corr.XVpar.p)/(length(cov15.cp.F$DNA_corr.XVpar.p)*2)
+#test_global_exp <- sum(test_cov$DNA_corr.cer.c, test_cov$DNA_corr.IXpar.p)/(length(test_cov$DNA_corr.IXpar.p)*2)
+
+####4) for each gene in experimental data, correct cerevisiae and paradoxus coverage separately using:########
+#(Global expected value)/(Corrected gene in that parent) * Observed coverage
+cov15.cp.F$depth.cer.c_corr <- (global_exp15/cov15.cp.F$DNA_corr.cer.c)*cov15.cp.F$depth.cer.c
+cov15.cp.F$depth.XVpar.p_corr <- (global_exp15/cov15.cp.F$DNA_corr.XVpar.p)*cov15.cp.F$depth.XVpar.p
+cov15.cp.F$depth.Xpar.c_corr <- (global_exp15/cov15.cp.F$DNA_corr.cer.c)*cov15.cp.F$depth.Xpar.c
+cov15.cp.F$depth.Xpar.c_corrs <- (global_exp15s/cov15.cp.F$DNA_corr.IXpar.c)*cov15.cp.F$depth.Xpar.c
+
+plot(cov15.cp.F$start.c, cov15.cp.F$depth.cer.c_corr, ylim=c(0,50))
+lines(cov15.cp.F$start.c, cov15.cp.F$depth.XVpar.p_corr)
+lines(cov15.cp.F$start.c, cov15.cp.F$depth.Xpar.c_corr)
+lines(cov15.cp.F$start.c, cov15.cp.F$depth.Xpar.c_corrs, col="red")
+#one cer can't correct other (between w303 and s288c at least)
+#one cer can't correct other (between s288c and s288c at least)
+
+#test_cov$depth.s1.c <- c(9, 12)
+#test_cov$depth.s1.p <- c(5,3)
+
+#test_cov$depth.s1.c_corr <- (test_global_exp/test_cov$DNA_corr.cer.c)*test_cov$depth.s1.c
+#test_cov$depth.s1.p_corr <- (test_global_exp/test_cov$DNA_corr.IXpar.p)*test_cov$depth.s1.p
+#test_cov$depth.s1.c_corr/(test_cov$depth.s1.p_corr+test_cov$depth.s1.c_corr)
+
+plot(cov15.cp.F$start.c, cov15.cp.F$depth.F1.c, type="l", ylim=c(0,1500), lty=2)
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.F1.p, col="red", lty=2)
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.F2.c, col="black", lty=2)
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.F2.p, col="red", lty=2)
+lines(cov15.cp.F$start.c, cov15.cp.F$depth.F1.c_corr, col="blue")
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.F1.p_corr, col="purple")
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.F2.c_corr, col="blue")
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.F2.p_corr, col="purple")
+
+plot(cov15.cp.F$start.c,cov15.cp.F$depth.F2.p_corr/(cov15.cp.F$depth.F2.c_corr+cov15.cp.F$depth.F2.p_corr), col="black", ylim=c(0,1), type="l")
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.F1.p_corr/(cov15.cp.F$depth.F1.c_corr+cov15.cp.F$depth.F1.p_corr), col="black")
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.F2.p/(cov15.cp.F$depth.F2.c+cov15.cp.F$depth.F2.p), col="blue", lty=2)
+lines(cov15.cp.F$start.c,cov15.cp.F$depth.F1.p/(cov15.cp.F$depth.F1.c+cov15.cp.F$depth.F1.p), col="blue", lty=2)
 
 ######here########
 
