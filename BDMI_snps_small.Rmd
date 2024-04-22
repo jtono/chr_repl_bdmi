@@ -1,0 +1,1097 @@
+---
+title: "BDMI_snps_small"
+output: word_document
+date: "2024-04-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+trimsnps_w <- function(indf, outdf, winsiz, winjmp){
+  #min and max
+  wmin <- min(indf$pos)
+  wmax <- max(indf$pos)
+  
+  window_size <- winsiz
+  window_jump <- winjmp
+  
+  #set window start and stop
+  window_start_w <- seq(from = wmin, to = wmax, by = window_jump)
+  window_stop_w <- window_start_w + window_size
+  
+  #make sure windows don't go beyond the max value in dataset
+  window_start_w <- window_start_w[which(window_stop_w < wmax)]
+  window_stop_w <- window_stop_w[which(window_stop_w < wmax)]
+  
+  #make a dataframe of the window starts, stops and mids
+  windows_w <- data.frame(start = window_start_w, stop = window_stop_w, mid = window_start_w + (window_stop_w-window_start_w)/2)
+  
+  #for positions in each window, find the median value for a1 and a2 and put in dataframe
+  windows_w$altf1_win <- 0
+  windows_w$altf2_win <- 0
+  for (i in 1:length(windows_w$start)){
+    sub <- indf[windows_w$start[i]<indf$pos&indf$pos<windows_w$stop[i],]
+    windows_w$altf1_win[i] <- median(sub$altf1)
+    windows_w$altf2_win[i] <- median(sub$altf2)
+  }
+  
+  #for each locus, make sure not different from medians by more than 0.1
+  outdf <- indf
+  outdf$incl <- NA
+  for (i in 1:length(windows_w$start)){
+    inwin <- c(which(windows_w$start[i]<=outdf$pos&outdf$pos<=windows_w$stop[i]))
+    for (j in inwin){
+      if(abs(outdf$altf1[j]-windows_w$altf1_win[i])<0.1&abs(outdf$altf2[j]-windows_w$altf2_win[i])<0.1){outdf$incl[j]<-1}else{
+        outdf$incl[j]<-0
+      }
+    }
+  }
+  
+  outdf <- outdf[-which(outdf$incl==0),]
+  
+  #compare old and new
+  plot(indf$altf1~indf$pos, col="grey", type="l")
+  lines(indf$altf2~indf$pos, col="lightblue")
+  lines(outdf$altf1~outdf$pos, col="black", type="l")
+  lines(outdf$altf2~outdf$pos, col="blue")
+  
+  return(outdf)
+}
+```
+
+
+## region F
+
+Do same as for region A and C. Only noted when something specific to region F. 
+Read in vcf files (mapped to N17 and W303).
+```{r echo=FALSE}
+library(dplyr)
+FW <- read.table("filtered_JO/FJOW_diSNP15_filtered.vcf", header=FALSE, comment.char="#")
+```
+Check that it worked.
+```{r}
+head(FW)
+```
+Rename the columns.\
+Cut down to the range for F:\
+range for F - YOL138C to YOL024W is region, did transformations YOL020W to YOL141W
+for N17 - 272160	273938 to 46776	48863
+for W303 - 288189	289967	to	58476	60563
+Go a bit outside (1kb on either end).
+```{r echo=FALSE}
+names(FW) <- c("chr", "pos", "id","ref","alt","qual","filter","info","format","f1w","f2w")
+
+FW <- subset(FW, pos>57476&pos<290967)
+```
+####here#####
+Only keep the columns I want.\
+```{r, echo=FALSE}
+FW <- select(FW, c(chr, pos, ref, alt, qual, f1w, f2w))
+
+FW$f1w <- as.character(FW$f1w) 
+FW$f2w <- as.character(FW$f2w) 
+
+FW$f1nref <- 0
+FW$f1nalt <- 0
+FW$f2nref <- 0
+FW$f2nalt <- 0
+for (i in 1:length(FW$chr)){
+  AD1 <- strsplit(strsplit(FW$f1w, ":")[[i]][2],",")
+  FW$f1nref[i] <- AD1[[1]][1]
+  FW$f1nalt[i] <- AD1[[1]][2]
+  AD2 <- strsplit(strsplit(FW$f2w, ":")[[i]][2],",")
+  FW$f2nref[i] <- AD2[[1]][1]
+  FW$f2nalt[i] <- AD2[[1]][2]
+}
+```
+
+```{r, echo=FALSE}
+FW$f1altf <- as.numeric(FW$f1nalt)/(as.numeric(FW$f1nref)+as.numeric(FW$f1nalt))
+FW$f2altf <- as.numeric(FW$f2nalt)/(as.numeric(FW$f2nref)+as.numeric(FW$f2nalt))
+
+FW$f1cov <- (as.numeric(FW$f1nref)+as.numeric(FW$f1nalt))
+FW$f2cov <- (as.numeric(FW$f2nref)+as.numeric(FW$f2nalt))
+```
+
+
+Plot mapped to cerevisiae. f1altf in black, f2altf in blue.
+```{r, echo=FALSE}
+plot(FW$f1altf~FW$pos, col="black", type="l")
+lines(FW$f2altf~FW$pos, col="blue")
+```
+
+Cut SNPs to those decided high qual
+```{r}
+Fsnps <- read.csv("Freg_snps.csv", header=TRUE)
+
+FW_cut <- FW[FW$pos%in%Fsnps$pos,]
+
+
+```
+
+Cut SNPs with coverage 2 SD above mean.\
+```{r}
+mean(FN$f1cov)
+sd(FN$f1cov)
+cutFN1 <- mean(FN$f1cov)+2*sd(FN$f1cov)
+
+mean(FN$f2cov)
+sd(FN$f2cov)
+cutFN2 <- mean(FN$f2cov)+2*sd(FN$f2cov)
+
+mean(FW$f1cov)
+sd(FW$f1cov)
+cutFW1 <- mean(FW$f1cov)+2*sd(FW$f1cov)
+
+mean(FW$f2cov)
+sd(FW$f2cov)
+cutFW2 <- mean(FW$f2cov)+2*sd(FW$f2cov)
+
+FNcut <- FN[-which(FN$f1cov > cutFN1 | FN$f2cov > cutFN2),]
+FWcut <- FW[!(FW$f1cov > cutFW1 | FW$f2cov > cutFW2),]
+```
+
+Plot the coverage of the original and versions with cutoff (cutoff in red and purple).\
+Also add the cutoffs as lines.\
+Also add the frequencies (*1250 to fit on plot).
+
+```{r, echo=FALSE}
+plot(FN$f1cov~FN$pos,type="l", col="black")
+lines(FN$f2cov~FN$pos, col="blue")
+lines(FNcut$f1cov~FNcut$pos,type="l", col="red")
+lines(FNcut$f2cov~FNcut$pos, col="purple")
+abline(h=1182.379)
+abline(h=1231.289)
+
+lines(FNcut$f1reff*1250~FNcut$pos,type="l", col="black")
+lines(FNcut$f2reff*1250~FNcut$pos, col="blue")
+
+plot(FW$f1cov~FW$pos,type="l", col="black")
+lines(FW$f2cov~FW$pos, col="blue")
+lines(FWcut$f1cov~FWcut$pos,type="l", col="red")
+lines(FWcut$f2cov~FWcut$pos, col="purple")
+abline(h=1316.392)
+abline(h=1105.799)
+
+lines(FWcut$f1altf*1250~FWcut$pos, col="black", type="l")
+lines(FWcut$f2altf*1250~FWcut$pos, col="blue")
+```
+Still not good. Also, medium region with very few SNPs in cerevisiae mapping.\
+\
+Cut off bottom as well\
+Plot these in green and orange.
+```{r, echo=FALSE}
+lcutFN1 <- mean(FN$f1cov)-2*sd(FN$f1cov)
+lcutFN2 <- mean(FN$f2cov)-2*sd(FN$f2cov)
+lcutFW1 <- mean(FW$f1cov)-2*sd(FW$f1cov)
+lcutFW2 <- mean(FW$f2cov)-2*sd(FW$f2cov)
+
+FNcut2 <- FNcut[!(FNcut$f1cov < lcutFN1 | FNcut$f2cov < lcutFN2),]
+FWcut2 <- FWcut[!(FWcut$f1cov < lcutFW1 | FWcut$f2cov < lcutFW2),]
+
+
+plot(FN$f1cov~FN$pos,type="l", col="black")
+lines(FN$f2cov~FN$pos, col="blue")
+lines(FNcut$f1cov~FNcut$pos,type="l", col="red")
+lines(FNcut$f2cov~FNcut$pos, col="purple")
+lines(FNcut2$f1cov~FNcut2$pos,type="l", col="green")
+lines(FNcut2$f2cov~FNcut2$pos, col="orange")
+abline(h=324.0304)
+abline(h=207.0733)
+
+lines(FNcut2$f1reff*1250~FNcut2$pos,type="l", col="black")
+lines(FNcut2$f2reff*1250~FNcut2$pos, col="blue")
+
+
+plot(FW$f1cov~FW$pos,type="l", col="black")
+lines(FW$f2cov~FW$pos, col="blue")
+lines(FWcut$f1cov~FWcut$pos,type="l", col="red")
+lines(FWcut$f2cov~FWcut$pos, col="purple")
+lines(FWcut2$f1cov~FWcut2$pos,type="l", col="green")
+lines(FWcut2$f2cov~FWcut2$pos, col="orange")
+abline(h=303.5813)
+abline(h=280.8968)
+
+lines(FWcut2$f1altf*1250~FWcut2$pos, col="black", type="l")
+lines(FWcut2$f2altf*1250~FWcut2$pos, col="blue")
+
+```
+Got rid of some crazy peaks and smoothed it out a bit?\
+\
+Now try requiring that called variants are variable in both samples (within mapping to a single species).\
+This will cut off the ends, but we're not really interested in those.\
+Then plot again with original (lightest), cut2 (darker) and cut3 (darkest).
+
+```{r, echo=FALSE}
+FWcut3 <- FWcut2[-which(FWcut2$f1nref==0|FWcut2$f1nalt==0|FWcut2$f2nref==0|FWcut2$f2nalt==0),]
+plot(FW$f1altf~FW$pos, col="grey", type="l")
+lines(FW$f2altf~FW$pos, col="lightblue")
+lines(FWcut2$f1altf~FWcut2$pos, col="slategray", type="l")
+lines(FWcut2$f2altf~FWcut2$pos, col="slateblue")
+lines(FWcut3$f1altf~FWcut3$pos, col="black", type="l")
+lines(FWcut3$f2altf~FWcut3$pos, col="blue")
+
+FNcut3 <- FNcut2[-which(FNcut2$f1nref==0|FNcut2$f1nalt==0|FNcut2$f2nref==0|FNcut2$f2nalt==0),]
+plot(FN$f1reff~FN$pos, col="grey", type="l")
+lines(FN$f2reff~FN$pos, col="lightblue")
+lines(FNcut2$f1reff~FNcut2$pos, col="slategray", type="l")
+lines(FNcut2$f2reff~FNcut2$pos, col="slateblue")
+lines(FNcut3$f1reff~FNcut3$pos, col="black", type="l")
+lines(FNcut3$f2reff~FNcut3$pos, col="blue")
+```
+Still pretty crazy.\
+Now will trim SNPs that are quite different from the median around them. First, need to find out how big the region is. 
+
+```{r, echo=TRUE}
+min(FNcut3$pos)
+max(FNcut3$pos)
+min(FWcut3$pos)
+max(FWcut3$pos)
+```
+
+
+Based on this, the region in paradoxus (N) is:\
+265747-51917=213830bp long\
+We expect the frequency to go from 0 to 1 in this region so, if went up consistently, would change by 0.1 within:\
+213830/10=21383\
+so should be reasonable to expect that every SNP should be within 0.1 of the median within ~10691bp.\
+\
+For cerevisiae (W):
+281704-66392= 215312bp long\
+215312/10 = 21531.2\
+So will use 10765bp.\
+\
+Also, do regions every 100bp. Plots the old frequencies from SNPs in lighter colours and post-cut in darker colours. First, need to rename columns.
+
+```{r, echo=FALSE}
+FNcut3$reff1 <- FNcut3$f1reff
+FNcut3$reff2 <- FNcut3$f2reff
+FWcut3$altf1 <- FWcut3$f1altf
+FWcut3$altf2 <- FWcut3$f2altf
+
+FNcut4 <- trimsnps_n(FNcut3, FNcut4, 10691,100)
+FWcut4 <- trimsnps_w(FWcut3, FWcut4, 10765,100)
+```
+
+
+Find out how many cut:
+```{r, echo=TRUE}
+length(FNcut3$chr)
+length(FNcut4$chr)
+length(FWcut3$chr)
+length(FWcut4$chr)
+```
+
+Now plot with loess smoothing. Loess with span=0.25. Do for those mapped to paradoxus first.
+```{r, echo=FALSE}
+lo1 <- loess(FNcut4$reff1~FNcut4$pos, span=0.25)
+lo2 <- loess(FNcut4$reff2~FNcut4$pos, span=0.25)
+plot(FNcut4$reff1~FNcut4$pos, type="l", ylim = c(0,1.2), xlim=c(46776,273938),col="black", ylab="freq par (mapped to par)", xlab="position along chromosome")
+lines(lo1$fitted~FNcut4$pos, col='purple', lwd=2)
+lines(FNcut4$reff2~FNcut4$pos, col="black")
+lines(lo2$fitted~FNcut4$pos, col='purple', lwd=2)
+fitsN <- (lo1$fitted+lo2$fitted)
+lines((fitsN-0.5)~FNcut4$pos, col="red")
+abline(h=0.5, col="black", lty=2)
+
+#range for F -  YOL138C  to YOL024W is region, did transformations TAT2 (YOL020W) to PPM2? (YOL141W)
+#n17: YOL138C 51621	55648, YOL024W 263056	263564, YOL020W 272160	273938, YOL141W 46776	48863
+#w303: YOL138C 63347	67369, YOL024W 279103	279621, YOL020W 288189	289967, YOL141W 58476	60563
+#borders of original region in forestgreen
+abline(v=51621, col="forestgreen")
+abline(v=263564, col="forestgreen")
+#rectangles where did transformation
+rect(272160, -1, 273938, 1.5, col=rgb(0,0,0,alpha=0.5), border=FALSE)
+rect(46776, -1, 48863, 1.5, col=rgb(0,0,0,alpha=0.5), border=FALSE)
+
+#add genes
+	
+rect(94960,1,96927,1.02)
+text(94960+500, 1.03, labels = 'YOL113W', cex=0.5)
+		
+rect(97338,1.17,98816,1.19)
+text(97338, 1.22, labels = 'YOL112W', cex=0.5)
+		
+rect(98886,1,99530,1.02)
+text(98886+500, 1.05, labels = 'YOL111C', cex=0.5)
+		
+rect(99812,1.1,100525,1.12)
+text(99812+2000, 1.15, labels = 'YOL110W', cex=0.5)
+		
+rect(88177,1,90114,1.02)
+text(88177+500, 1.05, labels = 'YOL117W', cex=0.5)
+		
+rect(90435,1.17,91580,1.19)
+text(90435+500, 1.2, labels = 'YOL116W', cex=0.5)
+		
+rect(92103,1,93860,1.02)
+text(92103+1000, 0.98, labels = 'YOL115W', cex=0.5)
+		
+rect(93952,1.1,94560,1.12)
+text(93952+500, 1.13, labels = 'YOL114C', cex=0.5)
+		
+rect(257989,1,259710,1.02)
+text(257989+00, 1.05, labels = 'YOL027C', cex=0.5)
+		
+rect(260937,1.1,262919,1.12)
+text(260937+00, 1.15, labels = 'YOL025W', cex=0.5)
+		
+rect(264011,1,266053,1.02)
+text(264011+500, 0.98, labels = 'YOL023W', cex=0.5)
+		
+rect(100922,1.17,101263,1.19)
+text(100922+1500, 1.2, labels = 'YOL109W', cex=0.5)
+		
+rect(102904,1,103356,1.02)
+text(102904+1000, 0.98, labels = 'YOL108C', cex=0.5)
+		
+rect(103572,1.1,104600,1.12)
+text(103572+500, 1.13, labels = 'YOL107W', cex=0.5)
+		
+rect(105463,1,107117,1.02)
+text(105463+500, 1.03, labels = 'YOL105C', cex=0.5)
+		
+rect(135843,1.1,138932,1.12)
+text(135843-1000, 1.15, labels = 'YOL089C', cex=0.5)
+		
+rect(139363,1,140196,1.02)
+text(139363+1000, 1.05, labels = 'YOL088C', cex=0.5)
+	
+rect(140740,1.1,144102,1.12)
+text(140740+1000, 1.13, labels = 'YOL087C', cex=0.5)
+	
+rect(144628,1,144900,1.02)
+text(144628+1000, 1.03, labels = 'YOL086W-A', cex=0.5)
+	
+rect(145001,1.1,146047,1.12)
+text(145001+1000, 1.15, labels = 'YOL086C', cex=0.5)
+
+#find lowest 5%
+abline(h=sort(fitsN)[length(fitsN)*0.05]-0.5, col="blue", lty=3)
+```
+
+Plot for those mapped to paradoxus (N17) with loess smoothing.\
+Borders of original region in forestgreen. Rectangles where did transformations.\
+Bottom 5% of sum of fits in dotted blue line.\
+\
+Now plot with loess smoothing. Loess with span=0.25. Do for those mapped to cerevisiae.
+
+```{r, echo=FALSE}
+lo1 <- loess(FWcut4$altf1~FWcut4$pos, span=0.25)
+lo2 <- loess(FWcut4$altf2~FWcut4$pos, span=0.25)
+plot(FWcut4$altf1~FWcut4$pos, type="l", ylim = c(0,1.2), xlim=c(58476,289967),col="black", ylab="freq par (mapped to cer)", xlab="position along chromosome")
+lines(lo1$fitted~FWcut4$pos, col='purple', lwd=2)
+lines(FWcut4$altf2~FWcut4$pos, col="black")
+lines(lo2$fitted~FWcut4$pos, col='purple', lwd=2)
+fitsW <- (lo1$fitted+lo2$fitted)
+lines((fitsW-0.5)~FWcut4$pos, col="red")
+abline(h=0.5, col="black", lty=2)
+
+#range for F -  YOL138C  to YOL024W is region, did transformations TAT2 (YOL020W) to PPM2? (YOL141W)
+#n17: YOL138C 51621	55648, YOL024W 263056	263564, YOL020W 272160	273938, YOL141W 46776	48863
+#w303: YOL138C 63347	67369, YOL024W 279103	279621, YOL020W 288189	289967, YOL141W 58476	60563
+#borders of original region in forestgreen
+abline(v=63347, col="forestgreen")
+abline(v=279621, col="forestgreen")
+#rectangles where did transformation
+rect(288189, -1, 289967, 1.5, col=rgb(0,0,0,alpha=0.5), border=FALSE)
+rect(58476, -1, 60563, 1.5, col=rgb(0,0,0,alpha=0.5), border=FALSE)
+
+#add genes
+		
+rect(106345,1,108312,1.02)
+text(106345+500, 1.03, labels = 'YOL113W', cex=0.5)
+			
+rect(108729,1.17,110207,1.19)
+text(108729, 1.22, labels = 'YOL112W', cex=0.5)
+			
+rect(110277,1,110915,1.02)
+text(110277+500, 1.05, labels = 'YOL111C', cex=0.5)
+			
+rect(111195,1.1,111908,1.12)
+text(111195+500, 1.15, labels = 'YOL110W', cex=0.5)
+			
+rect(99570,1,101507,1.02)
+text(99570+500, 1.05, labels = 'YOL117W', cex=0.5)
+			
+rect(101828,1.17,102976,1.19)
+text(101828+500, 1.2, labels = 'YOL116W', cex=0.5)
+			
+rect(103494,1,105248,1.02)
+text(103494+1000, 0.98, labels = 'YOL115W', cex=0.5)
+			
+rect(105336,1.1,105944,1.12)
+text(105336+00, 1.13, labels = 'YOL114C', cex=0.5)
+			
+rect(274020,1,275741,1.02)
+text(274020+00, 1.05, labels = 'YOL027C', cex=0.5)
+			
+rect(276974,1.1,278956,1.12)
+text(276974+00, 1.13, labels = 'YOL025W', cex=0.5)
+			
+rect(280073,1.1,282103,1.12)
+text(280073+500, 1.15, labels = 'YOL023W', cex=0.5)
+			
+rect(112316,1.17,112657,1.19)
+text(112316+1500, 1.2, labels = 'YOL109W', cex=0.5)
+			
+rect(113450,1,113905,1.02)
+text(113450+1000, 0.98, labels = 'YOL108C', cex=0.5)
+			
+rect(114121,1.1,115149,1.12)
+text(114121+1000, 1.13, labels = 'YOL107W', cex=0.5)
+			
+rect(116157,1,117827,1.02)
+text(116157+500, 1.03, labels = 'YOL105C', cex=0.5)
+			
+rect(152417,1.1,155509,1.12)
+text(152417-1000, 1.15, labels = 'YOL089C', cex=0.5)
+			
+rect(155931,1,156764,1.02)
+text(155931+1000, 1.05, labels = 'YOL088C', cex=0.5)
+		
+rect(157306,1.1,160656,1.12)
+text(157306+1000, 1.13, labels = 'YOL087C', cex=0.5)
+		
+rect(161192,1,161464,1.02)
+text(161192+1000, 1.03, labels = 'YOL086W-A', cex=0.5)
+		
+rect(161567,1.1,162613,1.12)
+text(161567+1000, 1.15, labels = 'YOL086C', cex=0.5)
+
+#find lowest 5%
+abline(h=sort(fitsW)[length(fitsW)*0.05]-0.5, col="blue", lty=3)
+```
+Plot for those mapped to cerevisiae (W303).\
+Borders of original region in forestgreen. Rectangles where did transformations.\
+Bottom 5% of sum of fits in dotted blue line.\
+\
+Next idea was to try and match up SNPs between the two mappings to only keep those that correspond. This is not trivial, however, and I haven't done that yet.\
+
+## region E - try2
+Do same.
+Read in vcf files (mapped to N17 and W303).
+```{r echo=FALSE}
+library(dplyr)
+E2N <- read.table("filtered_JO/EJON_diSNP15_filtered.vcf", header=FALSE, comment.char="#")
+E2W <- read.table("filtered_JO/EJOW_diSNP15_filtered.vcf", header=FALSE, comment.char="#")
+```
+Check that it worked.
+```{r}
+head(E2N)
+head(E2W)
+```
+Rename the columns.\
+Cut down to the range for E:\
+range for E rep2 - YOL160W to YOL157C is region, did transformations pau20 (YOL161C) to zps1 (YOL154W)\
+for N17 - 1590 2276 to 24900	25649\
+for W303 - 13641	14003 to 36750	37499\
+Go a bit outside (1kb on either end).
+```{r echo=FALSE}
+names(E2N) <- c("chr", "pos", "id","ref","alt","qual","filter","info","format","e21n","e22n")
+names(E2W) <- c("chr", "pos", "id","ref","alt","qual","filter","info","format","e21w","e22w")
+
+E2N <- subset(E2N, pos>590&pos<26649)
+E2W <- subset(E2W, pos>12641&pos<38499)
+```
+
+Only keep the columns I want.\
+```{r, echo=FALSE}
+E2N <- select(E2N, c(chr, pos, ref, alt, qual, e21n, e22n))
+E2W <- select(E2W, c(chr, pos, ref, alt, qual, e21w, e22w))
+
+E2N$e21n <- as.character(E2N$e21n) 
+E2N$e22n <- as.character(E2N$e22n) 
+E2W$e21w <- as.character(E2W$e21w) 
+E2W$e22w <- as.character(E2W$e22w) 
+
+E2N$e21nref <- 0
+E2N$e21nalt <- 0
+E2N$e22nref <- 0
+E2N$e22nalt <- 0
+for (i in 1:length(E2N$chr)){
+  AD1 <- strsplit(strsplit(E2N$e21n, ":")[[i]][2],",")
+  E2N$e21nref[i] <- AD1[[1]][1]
+  E2N$e21nalt[i] <- AD1[[1]][2]
+  AD2 <- strsplit(strsplit(E2N$e22n, ":")[[i]][2],",")
+  E2N$e22nref[i] <- AD2[[1]][1]
+  E2N$e22nalt[i] <- AD2[[1]][2]
+}
+
+E2W$e21nref <- 0
+E2W$e21nalt <- 0
+E2W$e22nref <- 0
+E2W$e22nalt <- 0
+for (i in 1:length(E2W$chr)){
+  AD1 <- strsplit(strsplit(E2W$e21w, ":")[[i]][2],",")
+  E2W$e21nref[i] <- AD1[[1]][1]
+  E2W$e21nalt[i] <- AD1[[1]][2]
+  AD2 <- strsplit(strsplit(E2W$e22w, ":")[[i]][2],",")
+  E2W$e22nref[i] <- AD2[[1]][1]
+  E2W$e22nalt[i] <- AD2[[1]][2]
+}
+```
+
+```{r, echo=FALSE}
+E2N$e21reff <- as.numeric(E2N$e21nref)/(as.numeric(E2N$e21nref)+as.numeric(E2N$e21nalt))
+E2N$e22reff <- as.numeric(E2N$e22nref)/(as.numeric(E2N$e22nref)+as.numeric(E2N$e22nalt))
+E2W$e21altf <- as.numeric(E2W$e21nalt)/(as.numeric(E2W$e21nref)+as.numeric(E2W$e21nalt))
+E2W$e22altf <- as.numeric(E2W$e22nalt)/(as.numeric(E2W$e22nref)+as.numeric(E2W$e22nalt))
+
+E2N$e21cov <- (as.numeric(E2N$e21nref)+as.numeric(E2N$e21nalt))
+E2N$e22cov <- (as.numeric(E2N$e22nref)+as.numeric(E2N$e22nalt))
+E2W$e21cov <- (as.numeric(E2W$e21nref)+as.numeric(E2W$e21nalt))
+E2W$e22cov <- (as.numeric(E2W$e22nref)+as.numeric(E2W$e22nalt))
+```
+
+Plot outcome. Mapped to paradoxus, with e21reff in black, e22reff in blue.
+```{r, echo=FALSE}
+plot(E2N$e21reff~E2N$pos,type="l", col="black")
+lines(E2N$e22reff~E2N$pos, col="blue")
+```
+Doesn't look great.\
+
+Plot mapped to cerevisiae. e21altf in black, e22altf in blue.
+```{r, echo=FALSE}
+plot(E2W$e21altf~E2W$pos, col="black", type="l")
+lines(E2W$e22altf~E2W$pos, col="blue")
+```
+better???\
+
+Cut SNPs with coverage 2 SD above mean.\
+```{r}
+mean(E2N$e21cov)
+sd(E2N$e21cov)
+cutE2N1 <- mean(E2N$e21cov)+2*sd(E2N$e21cov)
+
+mean(E2N$e22cov)
+sd(E2N$e22cov)
+cutE2N2 <- mean(E2N$e22cov)+2*sd(E2N$e22cov)
+
+mean(E2W$e21cov)
+sd(E2W$e21cov)
+cutE2W1 <- mean(E2W$e21cov)+2*sd(E2W$e21cov)
+
+mean(E2W$e22cov)
+sd(E2W$e22cov)
+cutE2W2 <- mean(E2W$e22cov)+2*sd(E2W$e22cov)
+
+E2Ncut <- E2N[-which(E2N$e21cov > cutE2N1 | E2N$e22cov > cutE2N2),]
+E2Wcut <- E2W[!(E2W$e21cov > cutE2W1 | E2W$e22cov > cutE2W2),]
+```
+
+Plot the coverage of the original and versions with cutoff (cutoff in red and purple).\
+Also add the cutoffs as lines.\
+Also add the frequencies (*1250 to fit on plot).
+
+```{r, echo=FALSE}
+plot(E2N$e21cov~E2N$pos,type="l", col="black")
+lines(E2N$e22cov~E2N$pos, col="blue")
+lines(E2Ncut$e21cov~E2Ncut$pos,type="l", col="red")
+lines(E2Ncut$e22cov~E2Ncut$pos, col="purple")
+abline(h=1466.208)
+abline(h=1671.666)
+
+lines(E2Ncut$e21reff*1250~E2Ncut$pos,type="l", col="black")
+lines(E2Ncut$e22reff*1250~E2Ncut$pos, col="blue")
+
+plot(E2W$e21cov~E2W$pos,type="l", col="black")
+lines(E2W$e22cov~E2W$pos, col="blue")
+lines(E2Wcut$e21cov~E2Wcut$pos,type="l", col="red")
+lines(E2Wcut$e22cov~E2Wcut$pos, col="purple")
+abline(h=938.3343)
+abline(h=893.9953)
+
+lines(E2Wcut$e21altf*1250~E2Wcut$pos, col="black", type="l")
+lines(E2Wcut$e22altf*1250~E2Wcut$pos, col="blue")
+```
+Still not good.\
+\
+Cut off bottom as well\
+Plot these in green and orange.
+```{r, echo=FALSE}
+lcutE2N1 <- mean(E2N$e21cov)-2*sd(E2N$e21cov)
+lcutE2N2 <- mean(E2N$e22cov)-2*sd(E2N$e22cov)
+lcutE2W1 <- mean(E2W$e21cov)-2*sd(E2W$e21cov)
+lcutE2W2 <- mean(E2W$e22cov)-2*sd(E2W$e22cov)
+
+E2Ncut2 <- E2Ncut[!(E2Ncut$e21cov < lcutE2N1 | E2Ncut$e22cov < lcutE2N2),]
+E2Wcut2 <- E2Wcut[!(E2Wcut$e21cov < lcutE2W1 | E2Wcut$e22cov < lcutE2W2),]
+
+
+plot(E2N$e21cov~E2N$pos,type="l", col="black")
+lines(E2N$e22cov~E2N$pos, col="blue")
+lines(E2Ncut$e21cov~E2Ncut$pos,type="l", col="red")
+lines(E2Ncut$e22cov~E2Ncut$pos, col="purple")
+lines(E2Ncut2$e21cov~E2Ncut2$pos,type="l", col="green")
+lines(E2Ncut2$e22cov~E2Ncut2$pos, col="orange")
+abline(h=(-26.15799))
+abline(h=(-236.0771))
+
+lines(E2Ncut2$e21reff*1250~E2Ncut2$pos,type="l", col="black")
+lines(E2Ncut2$e22reff*1250~E2Ncut2$pos, col="blue")
+
+plot(E2W$e21cov~E2W$pos,type="l", col="black")
+lines(E2W$e22cov~E2W$pos, col="blue")
+lines(E2Wcut$e21cov~E2Wcut$pos,type="l", col="red")
+lines(E2Wcut$e22cov~E2Wcut$pos, col="purple")
+lines(E2Wcut2$e21cov~E2Wcut2$pos,type="l", col="green")
+lines(E2Wcut2$e22cov~E2Wcut2$pos, col="orange")
+abline(h=119.0526)
+abline(h=124.2274)
+
+lines(E2Wcut2$e21altf*1250~E2Wcut2$pos, col="black", type="l")
+lines(E2Wcut2$e22altf*1250~E2Wcut2$pos, col="blue")
+
+```
+Now try requiring that called variants are variable in both samples (within mapping to a single species).\
+This will cut off the ends, but we're not really interested in those.\
+Then plot again with original (lightest), cut2 (darker) and cut3 (darkest).
+
+```{r, echo=FALSE}
+E2Wcut3 <- E2Wcut2[-which(E2Wcut2$e21nref==0|E2Wcut2$e21nalt==0|E2Wcut2$e22nref==0|E2Wcut2$e22nalt==0),]
+plot(E2W$e21altf~E2W$pos, col="grey", type="l")
+lines(E2W$e22altf~E2W$pos, col="lightblue")
+lines(E2Wcut2$e21altf~E2Wcut2$pos, col="slategray", type="l")
+lines(E2Wcut2$e22altf~E2Wcut2$pos, col="slateblue")
+lines(E2Wcut3$e21altf~E2Wcut3$pos, col="black", type="l")
+lines(E2Wcut3$e22altf~E2Wcut3$pos, col="blue")
+
+E2Ncut3 <- E2Ncut2[-which(E2Ncut2$e21nref==0|E2Ncut2$e21nalt==0|E2Ncut2$e22nref==0|E2Ncut2$e22nalt==0),]
+plot(E2N$e21reff~E2N$pos, col="grey", type="l")
+lines(E2N$e22reff~E2N$pos, col="lightblue")
+lines(E2Ncut2$e21reff~E2Ncut2$pos, col="slategray", type="l")
+lines(E2Ncut2$e22reff~E2Ncut2$pos, col="slateblue")
+lines(E2Ncut3$e21reff~E2Ncut3$pos, col="black", type="l")
+lines(E2Ncut3$e22reff~E2Ncut3$pos, col="blue")
+```
+Still pretty crazy.\
+Now will trim SNPs that are quite different from the median around them. First, need to find out how big the region is. 
+
+```{r, echo=TRUE}
+min(E2Ncut3$pos)
+max(E2Ncut3$pos)
+min(E2Wcut3$pos)
+max(E2Wcut3$pos)
+```
+
+
+Based on this, the region in paradoxus (N) is:\
+22937-854=22083bp long\
+We expect the frequency to go from 0 to 1 in this region so, if went up consistently, would change by 0.1 within:\
+22083/10=2208.3\
+so should be reasonable to expect that every SNP should be within 0.1 of the median within ~1104bp.\
+\
+For cerevisiae (W):
+34422-17358= 17064bp long\
+17064/10 = 1706.4\
+So will use 853bp.\
+\
+Also, do regions every 100bp. Plots the old frequencies from SNPs in lighter colours and post-cut in darker colours. First, need to rename columns.
+
+```{r, echo=FALSE}
+E2Ncut3$reff1 <- E2Ncut3$e21reff
+E2Ncut3$reff2 <- E2Ncut3$e22reff
+E2Wcut3$altf1 <- E2Wcut3$e21altf
+E2Wcut3$altf2 <- E2Wcut3$e22altf
+
+E2Ncut4 <- trimsnps_n(E2Ncut3, E2Ncut4, 1104,100)
+E2Wcut4 <- trimsnps_w(E2Wcut3, E2Wcut4, 853,100)
+```
+Find out how many cut:
+```{r, echo=TRUE}
+length(E2Ncut3$chr)
+length(E2Ncut4$chr)
+length(E2Wcut3$chr)
+length(E2Wcut4$chr)
+```
+
+Now plot with loess smoothing. Loess with span=0.25. Do for those mapped to paradoxus first.
+####add genes####
+```{r, echo=FALSE}
+lo1 <- loess(E2Ncut4$reff1~E2Ncut4$pos, span=0.25)
+lo2 <- loess(E2Ncut4$reff2~E2Ncut4$pos, span=0.25)
+plot(E2Ncut4$reff1~E2Ncut4$pos, type="l", ylim = c(0,1.2), xlim=c(1590,25649),col="black", ylab="freq par (mapped to par)", xlab="position along chromosome")
+lines(lo1$fitted~E2Ncut4$pos, col='purple', lwd=2)
+lines(E2Ncut4$reff2~E2Ncut4$pos, col="black")
+lines(lo2$fitted~E2Ncut4$pos, col='purple', lwd=2)
+fitsN <- (lo1$fitted+lo2$fitted)
+lines((fitsN-0.5)~E2Ncut4$pos, col="red")
+abline(h=0.5, col="black", lty=2)
+
+#range for E rep2 - YOL160W to YOL157C is region, did transformations pau20 (YOL161C) to zps1 (YOL154W)\
+#for N17 - YOL160W 2188	2521, YOL157C  12535	14304, YOL161C 1590 2276, YOL154W 24900	25649
+#for W303 - YOL160W 16405	16746,  YOL157C 24617	26386,YOL161C 13641	14003, YOL154W 36750	37499
+#borders of original region in forestgreen
+abline(v=2188, col="forestgreen")
+abline(v=14304, col="forestgreen")
+#rectangles where did transformation
+rect(1590, -1, 2276, 1.5, col=rgb(0,0,0,alpha=0.5), border=FALSE)
+rect(24900, -1, 25649, 1.5, col=rgb(0,0,0,alpha=0.5), border=FALSE)
+
+#add genes
+#rect(11474,1,13102,1.02)
+#text(11474+500, 1.05, labels = 'YIL166C', cex=0.5)
+
+#find lowest 5%
+abline(h=sort(fitsN)[length(fitsN)*0.05]-0.5, col="blue", lty=3)
+```
+Not great but at least they cross?\
+Plot for those mapped to paradoxus (N17) with loess smoothing.\
+Borders of original region in forestgreen. Rectangles where did transformations.\
+Bottom 5% of sum of fits in dotted blue line.\
+\
+Now plot with loess smoothing. Loess with span=0.25. Do for those mapped to cerevisiae.
+###add genes####
+```{r, echo=FALSE}
+lo1 <- loess(E2Wcut4$altf1~E2Wcut4$pos, span=0.25)
+lo2 <- loess(E2Wcut4$altf2~E2Wcut4$pos, span=0.25)
+plot(E2Wcut4$altf1~E2Wcut4$pos, type="l", ylim = c(0,1.2), xlim=c(13641,37499),col="black", ylab="freq par (mapped to cer)", xlab="position along chromosome")
+lines(lo1$fitted~E2Wcut4$pos, col='purple', lwd=2)
+lines(E2Wcut4$altf2~E2Wcut4$pos, col="black")
+lines(lo2$fitted~E2Wcut4$pos, col='purple', lwd=2)
+fitsW <- (lo1$fitted+lo2$fitted)
+lines((fitsW-0.5)~E2Wcut4$pos, col="red")
+abline(h=0.5, col="black", lty=2)
+
+#range for E rep2 - YOL160W to YOL157C is region, did transformations pau20 (YOL161C) to zps1 (YOL154W)\
+#for N17 - YOL160W 2188	2521, YOL157C  12535	14304, YOL161C 1590 2276, YOL154W 24900	25649
+#for W303 - YOL160W 16405	16746,  YOL157C 24617	26386,YOL161C 13641	14003, YOL154W 36750	37499
+#borders of original region in forestgreen
+abline(v=16405, col="forestgreen")
+abline(v=26386, col="forestgreen")
+#rectangles where did transformation
+rect(13641, -1, 14003, 1.5, col=rgb(0,0,0,alpha=0.5), border=FALSE)
+rect(36750, -1, 37499, 1.5, col=rgb(0,0,0,alpha=0.5), border=FALSE)
+
+#add genes
+		
+rect(27365,1,29068,1.02)
+text(27365+500, 1.05, labels = 'YOL156W', cex=0.5)
+	
+rect(30795,1,33698,1.02)
+text(30795+500, 1.05, labels = 'YOL155C', cex=0.5)
+
+
+
+#find lowest 5%
+abline(h=sort(fitsW)[length(fitsW)*0.05]-0.5, col="blue", lty=3)
+```
+Plot for those mapped to cerevisiae (W303).\
+Better? They cross....\
+Borders of original region in forestgreen. Rectangles where did transformations.\
+Bottom 5% of sum of fits in dotted blue line.\
+\
+Next idea was to try and match up SNPs between the two mappings to only keep those that correspond. This is not trivial, however, and I haven't done that yet.\
+
+<!-- ## region E - try3 -->
+<!-- Do same. -->
+<!-- Read in vcf files (mapped to N17 and W303). -->
+<!-- ```{r echo=FALSE} -->
+<!-- library(dplyr) -->
+<!-- E3N <- read.table("/Users/jto208/Documents/GreigLabPDoc/BDM_Mapping/Chr_Replacement/bioinformatics/variants2/Erep3N_diSNP15_filtered.vcf", header=FALSE, comment.char="#") -->
+<!-- E3W <- read.table("/Users/jto208/Documents/GreigLabPDoc/BDM_Mapping/Chr_Replacement/bioinformatics/variants2/Erep3W_diSNP15_filtered.vcf", header=FALSE, comment.char="#") -->
+<!-- ``` -->
+<!-- Check that it worked. -->
+<!-- ```{r} -->
+<!-- head(E3N) -->
+<!-- head(E3W) -->
+<!-- ``` -->
+<!-- Rename the columns.\ -->
+<!-- Cut down to the range for E:\ -->
+<!-- range for E rep3 - YOL160W to YOL157C is region, did transformations YOL160W to zps1 (YOL154W)\ -->
+<!-- for N17 - 2188	2521 to 24900	25649\ -->
+<!-- for W303 - 16405	16746 to 36750	37499\ -->
+<!-- Go a bit outside (1kb on either end). -->
+<!-- ```{r echo=FALSE} -->
+<!-- names(E3N) <- c("chr", "pos", "id","ref","alt","qual","filter","info","format","e31n","e32n") -->
+<!-- names(E3W) <- c("chr", "pos", "id","ref","alt","qual","filter","info","format","e31w","e32w") -->
+
+<!-- E3N <- subset(E3N, pos>1188&pos<26649) -->
+<!-- E3W <- subset(E3W, pos>15405&pos<38499) -->
+<!-- ``` -->
+
+<!-- Only keep the columns I want.\ -->
+<!-- ```{r, echo=FALSE} -->
+<!-- E3N <- select(E3N, c(chr, pos, ref, alt, qual, e31n, e32n)) -->
+<!-- E3W <- select(E3W, c(chr, pos, ref, alt, qual, e31w, e32w)) -->
+
+<!-- E3N$e31n <- as.character(E3N$e31n)  -->
+<!-- E3N$e32n <- as.character(E3N$e32n)  -->
+<!-- E3W$e31w <- as.character(E3W$e31w)  -->
+<!-- E3W$e32w <- as.character(E3W$e32w)  -->
+
+<!-- E3N$e31nref <- 0 -->
+<!-- E3N$e31nalt <- 0 -->
+<!-- E3N$e32nref <- 0 -->
+<!-- E3N$e32nalt <- 0 -->
+<!-- for (i in 1:length(E3N$chr)){ -->
+<!--   AD1 <- strsplit(strsplit(E3N$e31n, ":")[[i]][2],",") -->
+<!--   E3N$e31nref[i] <- AD1[[1]][1] -->
+<!--   E3N$e31nalt[i] <- AD1[[1]][2] -->
+<!--   AD2 <- strsplit(strsplit(E3N$e32n, ":")[[i]][2],",") -->
+<!--   E3N$e32nref[i] <- AD2[[1]][1] -->
+<!--   E3N$e32nalt[i] <- AD2[[1]][2] -->
+<!-- } -->
+
+<!-- E3W$e31nref <- 0 -->
+<!-- E3W$e31nalt <- 0 -->
+<!-- E3W$e32nref <- 0 -->
+<!-- E3W$e32nalt <- 0 -->
+<!-- for (i in 1:length(E3W$chr)){ -->
+<!--   AD1 <- strsplit(strsplit(E3W$e31w, ":")[[i]][2],",") -->
+<!--   E3W$e31nref[i] <- AD1[[1]][1] -->
+<!--   E3W$e31nalt[i] <- AD1[[1]][2] -->
+<!--   AD2 <- strsplit(strsplit(E3W$e32w, ":")[[i]][2],",") -->
+<!--   E3W$e32nref[i] <- AD2[[1]][1] -->
+<!--   E3W$e32nalt[i] <- AD2[[1]][2] -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- ```{r, echo=FALSE} -->
+<!-- E3N$e31reff <- as.numeric(E3N$e31nref)/(as.numeric(E3N$e31nref)+as.numeric(E3N$e31nalt)) -->
+<!-- E3N$e32reff <- as.numeric(E3N$e32nref)/(as.numeric(E3N$e32nref)+as.numeric(E3N$e32nalt)) -->
+<!-- E3W$e31altf <- as.numeric(E3W$e31nalt)/(as.numeric(E3W$e31nref)+as.numeric(E3W$e31nalt)) -->
+<!-- E3W$e32altf <- as.numeric(E3W$e32nalt)/(as.numeric(E3W$e32nref)+as.numeric(E3W$e32nalt)) -->
+
+<!-- E3N$e31cov <- (as.numeric(E3N$e31nref)+as.numeric(E3N$e31nalt)) -->
+<!-- E3N$e32cov <- (as.numeric(E3N$e32nref)+as.numeric(E3N$e32nalt)) -->
+<!-- E3W$e31cov <- (as.numeric(E3W$e31nref)+as.numeric(E3W$e31nalt)) -->
+<!-- E3W$e32cov <- (as.numeric(E3W$e32nref)+as.numeric(E3W$e32nalt)) -->
+<!-- ``` -->
+
+<!-- Plot outcome. Mapped to paradoxus, with e31reff in black, e32reff in blue. -->
+<!-- ```{r, echo=FALSE} -->
+<!-- plot(E3N$e31reff~E3N$pos,type="l", col="black") -->
+<!-- lines(E3N$e32reff~E3N$pos, col="blue") -->
+<!-- ``` -->
+<!-- Doesn't look great.\ -->
+
+<!-- Plot mapped to cerevisiae. e31altf in black, e32altf in blue. -->
+<!-- ```{r, echo=FALSE} -->
+<!-- plot(E3W$e31altf~E3W$pos, col="black", type="l") -->
+<!-- lines(E3W$e32altf~E3W$pos, col="blue") -->
+<!-- ``` -->
+<!-- better???\ -->
+
+<!-- Cut SNPs with coverage 2 SD above mean.\ -->
+<!-- ```{r} -->
+<!-- mean(E3N$e31cov) -->
+<!-- sd(E3N$e31cov) -->
+<!-- cutE3N1 <- mean(E3N$e31cov)+2*sd(E3N$e31cov) -->
+
+<!-- mean(E3N$e32cov) -->
+<!-- sd(E3N$e32cov) -->
+<!-- cutE3N2 <- mean(E3N$e32cov)+2*sd(E3N$e32cov) -->
+
+<!-- mean(E3W$e31cov) -->
+<!-- sd(E3W$e31cov) -->
+<!-- cutE3W1 <- mean(E3W$e31cov)+2*sd(E3W$e31cov) -->
+
+<!-- mean(E3W$e32cov) -->
+<!-- sd(E3W$e32cov) -->
+<!-- cutE3W2 <- mean(E3W$e32cov)+2*sd(E3W$e32cov) -->
+
+<!-- E3Ncut <- E3N[!(E3N$e31cov > cutE3N1 | E3N$e32cov > cutE3N2),] -->
+<!-- E3Wcut <- E3W[!(E3W$e31cov > cutE3W1 | E3W$e32cov > cutE3W2),] -->
+<!-- ``` -->
+
+<!-- Plot the coverage of the original and versions with cutoff (cutoff in red and purple).\ -->
+<!-- Also add the cutoffs as lines.\ -->
+<!-- Also add the frequencies (*1250 to fit on plot). -->
+
+<!-- ```{r, echo=FALSE} -->
+<!-- plot(E3N$e31cov~E3N$pos,type="l", col="black") -->
+<!-- lines(E3N$e32cov~E3N$pos, col="blue") -->
+<!-- lines(E3Ncut$e31cov~E3Ncut$pos,type="l", col="red") -->
+<!-- lines(E3Ncut$e32cov~E3Ncut$pos, col="purple") -->
+<!-- abline(h=1187.141) -->
+<!-- abline(h=278.222) -->
+
+<!-- lines(E3Ncut$e31reff*1250~E3Ncut$pos,type="l", col="black") -->
+<!-- lines(E3Ncut$e32reff*1250~E3Ncut$pos, col="blue") -->
+
+<!-- plot(E3W$e31cov~E3W$pos,type="l", col="black") -->
+<!-- lines(E3W$e32cov~E3W$pos, col="blue") -->
+<!-- lines(E3Wcut$e31cov~E3Wcut$pos,type="l", col="red") -->
+<!-- lines(E3Wcut$e32cov~E3Wcut$pos, col="purple") -->
+<!-- abline(h=613.7026) -->
+<!-- abline(h=99.08334) -->
+
+<!-- lines(E3Wcut$e31altf*1250~E3Wcut$pos, col="black", type="l") -->
+<!-- lines(E3Wcut$e32altf*1250~E3Wcut$pos, col="blue") -->
+<!-- ``` -->
+<!-- Still not good.\ -->
+<!-- \ -->
+<!-- Cut off bottom as well\ -->
+<!-- Plot these in green and orange. -->
+<!-- ```{r, echo=FALSE} -->
+<!-- lcutE3N1 <- mean(E3N$e31cov)-2*sd(E3N$e31cov) -->
+<!-- lcutE3N2 <- mean(E3N$e32cov)-2*sd(E3N$e32cov) -->
+<!-- lcutE3W1 <- mean(E3W$e31cov)-2*sd(E3W$e31cov) -->
+<!-- lcutE3W2 <- mean(E3W$e32cov)-2*sd(E3W$e32cov) -->
+
+<!-- E3Ncut2 <- E3Ncut[!(E3Ncut$e31cov < lcutE3N1 | E3Ncut$e32cov < lcutE3N2),] -->
+<!-- E3Wcut2 <- E3Wcut[!(E3Wcut$e31cov < lcutE3W1 | E3Wcut$e32cov < lcutE3W2),] -->
+
+<!-- plot(E3N$e31cov~E3N$pos,type="l", col="black") -->
+<!-- lines(E3N$e32cov~E3N$pos, col="blue") -->
+<!-- lines(E3Ncut$e31cov~E3Ncut$pos,type="l", col="red") -->
+<!-- lines(E3Ncut$e32cov~E3Ncut$pos, col="purple") -->
+<!-- lines(E3Ncut2$e31cov~E3Ncut2$pos,type="l", col="green") -->
+<!-- lines(E3Ncut2$e32cov~E3Ncut2$pos, col="orange") -->
+<!-- abline(h=(32.69621)) -->
+<!-- abline(h=(-41.8072)) -->
+
+<!-- lines(E3Ncut2$e31reff*1250~E3Ncut2$pos,type="l", col="black") -->
+<!-- lines(E3Ncut2$e32reff*1250~E3Ncut2$pos, col="blue") -->
+
+<!-- plot(E3W$e31cov~E3W$pos,type="l", col="black") -->
+<!-- lines(E3W$e32cov~E3W$pos, col="blue") -->
+<!-- lines(E3Wcut$e31cov~E3Wcut$pos,type="l", col="red") -->
+<!-- lines(E3Wcut$e32cov~E3Wcut$pos, col="purple") -->
+<!-- lines(E3Wcut2$e31cov~E3Wcut2$pos,type="l", col="green") -->
+<!-- lines(E3Wcut2$e32cov~E3Wcut2$pos, col="orange") -->
+<!-- abline(h=50.85516) -->
+<!-- abline(h=16.26523) -->
+
+<!-- lines(E3Wcut2$e31altf*1250~E3Wcut2$pos, col="black", type="l") -->
+<!-- lines(E3Wcut2$e32altf*1250~E3Wcut2$pos, col="blue") -->
+
+<!-- ``` -->
+<!-- Now try requiring that called variants are variable in both samples (within mapping to a single species).\ -->
+<!-- This will cut off the ends, but we're not really interested in those.\ -->
+<!-- Then plot again with original (lightest), cut2 (darker) and cut3 (darkest). -->
+
+<!-- ```{r, echo=FALSE} -->
+<!-- E3Wcut3 <- E3Wcut2[-which(E3Wcut2$e31nref==0|E3Wcut2$e31nalt==0|E3Wcut2$e32nref==0|E3Wcut2$e32nalt==0),] -->
+<!-- plot(E3W$e31altf~E3W$pos, col="grey", type="l") -->
+<!-- lines(E3W$e32altf~E3W$pos, col="lightblue") -->
+<!-- lines(E3Wcut2$e31altf~E3Wcut2$pos, col="slategray", type="l") -->
+<!-- lines(E3Wcut2$e32altf~E3Wcut2$pos, col="slateblue") -->
+<!-- lines(E3Wcut3$e31altf~E3Wcut3$pos, col="black", type="l") -->
+<!-- lines(E3Wcut3$e32altf~E3Wcut3$pos, col="blue") -->
+
+<!-- E3Ncut3 <- E3Ncut2[-which(E3Ncut2$e31nref==0|E3Ncut2$e31nalt==0|E3Ncut2$e32nref==0|E3Ncut2$e32nalt==0),] -->
+<!-- plot(E3N$e31reff~E3N$pos, col="grey", type="l") -->
+<!-- lines(E3N$e32reff~E3N$pos, col="lightblue") -->
+<!-- lines(E3Ncut2$e31reff~E3Ncut2$pos, col="slategray", type="l") -->
+<!-- lines(E3Ncut2$e32reff~E3Ncut2$pos, col="slateblue") -->
+<!-- lines(E3Ncut3$e31reff~E3Ncut3$pos, col="black", type="l") -->
+<!-- lines(E3Ncut3$e32reff~E3Ncut3$pos, col="blue") -->
+<!-- ``` -->
+<!-- Still pretty crazy.\ -->
+<!-- Now will trim SNPs that are quite different from the median around them. First, need to find out how big the region is.  -->
+
+<!-- ```{r, echo=TRUE} -->
+<!-- min(E3Ncut3$pos) -->
+<!-- max(E3Ncut3$pos) -->
+<!-- min(E3Wcut3$pos) -->
+<!-- max(E3Wcut3$pos) -->
+<!-- ``` -->
+
+
+<!-- Based on this, the region in paradoxus (N) is:\ -->
+<!-- 22592-3288=19304bp long\ -->
+<!-- We expect the frequency to go from 0 to 1 in this region so, if went up consistently, would change by 0.1 within:\ -->
+<!-- 19304/10=1930.4\ -->
+<!-- so should be reasonable to expect that every SNP should be within 0.1 of the median within ~965bp.\ -->
+<!-- \ -->
+<!-- For cerevisiae (W): -->
+<!-- 33762-17514= 16248bp long\ -->
+<!-- 16248/10 = 1624.8\ -->
+<!-- So will use 812bp.\ -->
+<!-- \ -->
+<!-- Also, do regions every 100bp. Plots the old frequencies from SNPs in lighter colours and post-cut in darker colours. First, need to rename columns. -->
+
+<!-- ```{r, echo=FALSE} -->
+<!-- E3Ncut3$reff1 <- E3Ncut3$e31reff -->
+<!-- E3Ncut3$reff2 <- E3Ncut3$e32reff -->
+<!-- E3Wcut3$altf1 <- E3Wcut3$e31altf -->
+<!-- E3Wcut3$altf2 <- E3Wcut3$e32altf -->
+
+<!-- E3Ncut4 <- trimsnps_n(E3Ncut3, E3Ncut4, 965,100) -->
+<!-- E3Wcut4 <- trimsnps_w(E3Wcut3, E3Wcut4, 812,100) -->
+<!-- ``` -->
+<!-- All still pretty bad.\ -->
+<!-- Find out how many cut: -->
+<!-- ```{r, echo=TRUE} -->
+<!-- length(E3Ncut3$chr) -->
+<!-- length(E3Ncut4$chr) -->
+<!-- length(E3Wcut3$chr) -->
+<!-- length(E3Wcut4$chr) -->
+<!-- ``` -->
+
+<!-- Now plot with loess smoothing. Loess with span=0.25. Do for those mapped to paradoxus first. -->
+<!-- ####add genes#### -->
+<!-- ```{r, echo=FALSE} -->
+<!-- lo1 <- loess(E3Ncut4$reff1~E3Ncut4$pos, span=0.25) -->
+<!-- lo2 <- loess(E3Ncut4$reff2~E3Ncut4$pos, span=0.25) -->
+<!-- plot(E3Ncut4$reff1~E3Ncut4$pos, type="l", ylim = c(0,1.2), xlim=c(2188,25649),col="black", ylab="freq par (mapped to par)", xlab="position along chromosome") -->
+<!-- lines(lo1$fitted~E3Ncut4$pos, col='purple', lwd=2) -->
+<!-- lines(E3Ncut4$reff2~E3Ncut4$pos, col="black") -->
+<!-- lines(lo2$fitted~E3Ncut4$pos, col='purple', lwd=2) -->
+<!-- fitsN <- (lo1$fitted+lo2$fitted) -->
+<!-- lines((fitsN-0.5)~E3Ncut4$pos, col="red") -->
+<!-- abline(h=0.5, col="black", lty=2) -->
+
+<!-- #range for E rep3 - YOL160W to YOL157C is region, did transformations YOL160W to zps1 (YOL154W)\ -->
+<!-- #for N17 - YOL160W 2188	2521, YOL157C  12535	14304, YOL160W 2188	2521, YOL154W 24900	25649 -->
+<!-- #for W303 - YOL160W 16405	16746,  YOL157C 24617	26386,YOL160W 16405	16746, YOL154W 36750	37499 -->
+<!-- #borders of original region in forestgreen -->
+<!-- abline(v=2188, col="forestgreen") -->
+<!-- abline(v=14304, col="forestgreen") -->
+<!-- #rectangles where did transformation -->
+<!-- rect(2188, -1, 2521, 1.5, col=rgb(0,0,0,alpha=0.5), border=FALSE) -->
+<!-- rect(24900, -1, 25649, 1.5, col=rgb(0,0,0,alpha=0.5), border=FALSE) -->
+
+<!-- #add genes -->
+<!-- #rect(11474,1,13102,1.02) -->
+<!-- #text(11474+500, 1.05, labels = 'YIL166C', cex=0.5) -->
+
+<!-- #find lowest 5% -->
+<!-- abline(h=sort(fitsN)[length(fitsN)*0.05]-0.5, col="blue", lty=3) -->
+<!-- ``` -->
+<!-- Terrible but at least they cross?\ -->
+<!-- Plot for those mapped to paradoxus (N17) with loess smoothing.\ -->
+<!-- Borders of original region in forestgreen. Rectangles where did transformations.\ -->
+<!-- Bottom 5% of sum of fits in dotted blue line.\ -->
+<!-- \ -->
+<!-- Now plot with loess smoothing. Loess with span=0.25. Do for those mapped to cerevisiae. -->
+<!-- ###add genes#### -->
+<!-- ```{r, echo=FALSE} -->
+<!-- lo1 <- loess(E3Wcut4$altf1~E3Wcut4$pos, span=0.25) -->
+<!-- lo2 <- loess(E3Wcut4$altf2~E3Wcut4$pos, span=0.25) -->
+<!-- plot(E3Wcut4$altf1~E3Wcut4$pos, type="l", ylim = c(0,1.2), xlim=c(16405, 37499),col="black", ylab="freq par (mapped to cer)", xlab="position along chromosome") -->
+<!-- lines(lo1$fitted~E3Wcut4$pos, col='purple', lwd=2) -->
+<!-- lines(E3Wcut4$altf2~E3Wcut4$pos, col="black") -->
+<!-- lines(lo2$fitted~E3Wcut4$pos, col='purple', lwd=2) -->
+<!-- fitsW <- (lo1$fitted+lo2$fitted) -->
+<!-- lines((fitsW-0.5)~E3Wcut4$pos, col="red") -->
+<!-- abline(h=0.5, col="black", lty=2) -->
+
+<!-- #range for E rep3 - YOL160W to YOL157C is region, did transformations YOL160W to zps1 (YOL154W)\ -->
+<!-- #for N17 - YOL160W 2188	2521, YOL157C  12535	14304, YOL160W 2188	2521, YOL154W 24900	25649 -->
+<!-- #for W303 - YOL160W 16405	16746,  YOL157C 24617	26386,YOL160W 16405	16746, YOL154W 36750	37499 -->
+<!-- #borders of original region in forestgreen -->
+<!-- abline(v=16405, col="forestgreen") -->
+<!-- abline(v=26386, col="forestgreen") -->
+<!-- #rectangles where did transformation -->
+<!-- rect(16405, -1, 16746, 1.5, col=rgb(0,0,0,alpha=0.5), border=FALSE) -->
+<!-- rect(36750, -1, 37499, 1.5, col=rgb(0,0,0,alpha=0.5), border=FALSE) -->
+
+<!-- #add genes -->
+<!-- #rect(11474,1,13102,1.02) -->
+<!-- #text(11474+500, 1.05, labels = 'YIL166C', cex=0.5) -->
+
+<!-- #find lowest 5% -->
+<!-- abline(h=sort(fitsW)[length(fitsW)*0.05]-0.5, col="blue", lty=3) -->
+<!-- ``` -->
+<!-- Plot for those mapped to cerevisiae (W303).\ -->
+<!-- Better? Not really. They cross....\ -->
+<!-- Borders of original region in forestgreen. Rectangles where did transformations.\ -->
+<!-- Bottom 5% of sum of fits in dotted blue line.\ -->
+<!-- \ -->
+<!-- Next idea was to try and match up SNPs between the two mappings to only keep those that correspond. This is not trivial, however, and I haven't done that yet.\ -->
+

@@ -1,9 +1,9 @@
 library(dplyr)
 #####cer#####
 #read in vcf file - remove one comment line first so get header
-cer9 <- read.table("filtered/cerW_diSNP9_filtered.vcf", header=FALSE, comment.char="#")
-cer10 <- read.table("filtered/cerW_diSNP10_filtered.vcf", header=FALSE, comment.char="#")
-cer15 <- read.table("filtered/cerW_diSNP15_filtered.vcf", header=FALSE, comment.char="#")
+cer9 <- read.table("filtered_par/cerW_diSNP9_filtered.vcf", header=FALSE, comment.char="#")
+cer10 <- read.table("filtered_par/cerW_diSNP10_filtered.vcf", header=FALSE, comment.char="#")
+cer15 <- read.table("filtered_par/cerW_diSNP15_filtered.vcf", header=FALSE, comment.char="#")
 
 #check that it worked
 head(cer15)
@@ -15,7 +15,7 @@ names(cer15) <- c("chr", "pos", "id","ref","alt","qual","filter","info","format"
 
 ####cer - region A####
 #range for A - YIL166C to YIL156W is region, did transformations YIL151C to YIL169C - chrIX
-#- go a bit outside (1kb) 
+#- go a bit outside (1kb)
 #for W303 - 24534	to	62140
 cer9A <- subset(cer9, pos>23534&pos<63140)
 
@@ -31,7 +31,7 @@ cer9A <- subset(cer9, pos>23534&pos<63140)
 cer9A <- select(cer9A, c(chr, pos, ref, alt, qual, cerw))
 
 #split last column
-cer9A$cerw <- as.character(cer9A$cerw) 
+cer9A$cerw <- as.character(cer9A$cerw)
 
 ##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths (high-quality bases)"> - ref, alt
 cer9A$cerwref <- 0
@@ -49,12 +49,12 @@ cer9A$altf <- as.numeric(cer9A$cerwalt)/(as.numeric(cer9A$cerwref)+as.numeric(ce
 
 ####cer - region C####
 #range for C - YJL218W to YJL165C is region, did transformations YJL164C to YJL219W - chrX
-#- go a bit outside (1kb) 
+#- go a bit outside (1kb)
 #for W303 - 23187	24890	to	113654	114847
 cer10C <- subset(cer10, pos>22187&pos<115847)
 #none
 
-####cer - region E#### 
+####cer - region E####
 #range for E rep2 - YOL160W to YOL157C is region, did transformations pau20 (YOL161C) to zps1 (YOL154W)\ - chrXV
 #for W303 - 13641	14003 to 36750	37499\
 #Go a bit outside (1kb on either end).
@@ -72,7 +72,7 @@ cer15E <- subset(cer15, pos>12641&pos<38499)
 cer15E <- select(cer15E, c(chr, pos, ref, alt, qual, cerw))
 
 #split last column
-cer15E$cerw <- as.character(cer15E$cerw) 
+cer15E$cerw <- as.character(cer15E$cerw)
 
 ##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths (high-quality bases)"> - ref, alt
 cer15E$cerwref <- 0
@@ -88,7 +88,7 @@ cer15E$altf <- as.numeric(cer15E$cerwalt)/(as.numeric(cer15E$cerwref)+as.numeric
 #none over 90%
 #only 5 actually varying, so could just do all
 
-####cer - region F#### 
+####cer - region F####
 #range for F - YOL138C to YOL024W is region, did transformations YOL020W to YOL141W - chrXV
 #for W303 - 288189	289967	to	58476	60563
 #Go a bit outside (1kb on either end).
@@ -106,7 +106,7 @@ cer15F <- subset(cer15, pos>57476&pos<290967)
 cer15F <- select(cer15F, c(chr, pos, ref, alt, qual, cerw))
 
 #split last column
-cer15F$cerw <- as.character(cer15F$cerw) 
+cer15F$cerw <- as.character(cer15F$cerw)
 
 ##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths (high-quality bases)"> - ref, alt
 cer15F$cerwref <- 0
@@ -133,7 +133,7 @@ head(par9)
 names(par9) <- c("chr", "pos", "id","ref","alt","qual","filter","info","format","IXparn")
 
 #range for A - YIL166C to YIL156W is region, did transformations YIL151C to YIL169C - chrIX
-#- go a bit outside (1kb) 
+#- go a bit outside (1kb)
 #For N17 - (??) end to 41322\
 par9A <- subset(par9, pos<42322)
 
@@ -149,7 +149,7 @@ par9A <- subset(par9, pos<42322)
 par9A <- select(par9A, c(chr, pos, ref, alt, qual, IXparn))
 
 #split last column
-par9A$IXparn <- as.character(par9A$IXparn) 
+par9A$IXparn <- as.character(par9A$IXparn)
 
 ##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths (high-quality bases)"> - ref, alt
 par9A$parnref <- 0
@@ -177,7 +177,7 @@ head(par10)
 names(par10) <- c("chr", "pos", "id","ref","alt","qual","filter","info","format","Xparn")
 
 #range for C - YJL218W to YJL165C is region, did transformations YJL164C to YJL219W - chrX
-#- go a bit outside (1kb) 
+#- go a bit outside (1kb)
 #for N17 - 1422 to 102835\
 par10C <- subset(par10, pos>422&pos<103835)
 
@@ -195,7 +195,7 @@ par10C <- select(par10C, c(chr, pos, ref, alt, qual, Xparn))
 ######left off here#####
 
 #split last column
-par9A$IXparn <- as.character(par9A$IXparn) 
+par9A$IXparn <- as.character(par9A$IXparn)
 
 ##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths (high-quality bases)"> - ref, alt
 par9A$parnref <- 0
