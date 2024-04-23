@@ -84,7 +84,7 @@ names(FW) <- c("chr", "pos", "id","ref","alt","qual","filter","info","format","f
 
 FW <- subset(FW, pos>57476&pos<290967)
 ```
-####here#####
+
 Only keep the columns I want.\
 ```{r, echo=FALSE}
 FW <- select(FW, c(chr, pos, ref, alt, qual, f1w, f2w))
@@ -127,19 +127,13 @@ Fsnps <- read.csv("Freg_snps.csv", header=TRUE)
 
 FW_cut <- FW[FW$pos%in%Fsnps$pos,]
 
+plot(FW_cut$f1altf~FW_cut$pos, col="black", type="l")
+lines(FW_cut$f2altf~FW_cut$pos, col="blue")
 
 ```
 
 Cut SNPs with coverage 2 SD above mean.\
 ```{r}
-mean(FN$f1cov)
-sd(FN$f1cov)
-cutFN1 <- mean(FN$f1cov)+2*sd(FN$f1cov)
-
-mean(FN$f2cov)
-sd(FN$f2cov)
-cutFN2 <- mean(FN$f2cov)+2*sd(FN$f2cov)
-
 mean(FW$f1cov)
 sd(FW$f1cov)
 cutFW1 <- mean(FW$f1cov)+2*sd(FW$f1cov)
@@ -148,8 +142,18 @@ mean(FW$f2cov)
 sd(FW$f2cov)
 cutFW2 <- mean(FW$f2cov)+2*sd(FW$f2cov)
 
-FNcut <- FN[-which(FN$f1cov > cutFN1 | FN$f2cov > cutFN2),]
-FWcut <- FW[!(FW$f1cov > cutFW1 | FW$f2cov > cutFW2),]
+FWcutcov <- FW[!(FW$f1cov > cutFW1 | FW$f2cov > cutFW2),]
+
+mean(FW_cut$f1cov)
+sd(FW_cut$f1cov)
+cutFW1_cut <- mean(FW_cut$f1cov)+2*sd(FW_cut$f1cov)
+
+mean(FW_cut$f2cov)
+sd(FW_cut$f2cov)
+cutFW2_cut <- mean(FW_cut$f2cov)+2*sd(FW_cut$f2cov)
+
+FWcutcov <- FW[!(FW$f1cov > cutFW1 | FW$f2cov > cutFW2),]
+FW_cutcutcov <- FW_cut[!(FW_cut$f1cov > cutFW1_cut | FW_cut$f2cov > cutFW2_cut),]
 ```
 
 Plot the coverage of the original and versions with cutoff (cutoff in red and purple).\
@@ -157,16 +161,6 @@ Also add the cutoffs as lines.\
 Also add the frequencies (*1250 to fit on plot).
 
 ```{r, echo=FALSE}
-plot(FN$f1cov~FN$pos,type="l", col="black")
-lines(FN$f2cov~FN$pos, col="blue")
-lines(FNcut$f1cov~FNcut$pos,type="l", col="red")
-lines(FNcut$f2cov~FNcut$pos, col="purple")
-abline(h=1182.379)
-abline(h=1231.289)
-
-lines(FNcut$f1reff*1250~FNcut$pos,type="l", col="black")
-lines(FNcut$f2reff*1250~FNcut$pos, col="blue")
-
 plot(FW$f1cov~FW$pos,type="l", col="black")
 lines(FW$f2cov~FW$pos, col="blue")
 lines(FWcut$f1cov~FWcut$pos,type="l", col="red")
@@ -176,33 +170,27 @@ abline(h=1105.799)
 
 lines(FWcut$f1altf*1250~FWcut$pos, col="black", type="l")
 lines(FWcut$f2altf*1250~FWcut$pos, col="blue")
+
+plot(FWcutcov$f1altf~FWcutcov$pos, col="black", type="l")
+lines(FWcutcov$f2altf~FWcutcov$pos, col="blue")
+
+plot(FW_cutcutcov$f1altf~FW_cutcutcov$pos, col="black", type="l")
+lines(FW_cutcutcov$f2altf~FW_cutcutcov$pos, col="blue")
 ```
 Still not good. Also, medium region with very few SNPs in cerevisiae mapping.\
 \
 Cut off bottom as well\
 Plot these in green and orange.
 ```{r, echo=FALSE}
-lcutFN1 <- mean(FN$f1cov)-2*sd(FN$f1cov)
-lcutFN2 <- mean(FN$f2cov)-2*sd(FN$f2cov)
+
 lcutFW1 <- mean(FW$f1cov)-2*sd(FW$f1cov)
 lcutFW2 <- mean(FW$f2cov)-2*sd(FW$f2cov)
 
-FNcut2 <- FNcut[!(FNcut$f1cov < lcutFN1 | FNcut$f2cov < lcutFN2),]
+cutlcutFW1 <- mean(FW_cut$f1cov)-2*sd(FW_cut$f1cov)
+cutlcutFW2 <- mean(FW_cut$f2cov)-2*sd(FW_cut$f2cov)
+
 FWcut2 <- FWcut[!(FWcut$f1cov < lcutFW1 | FWcut$f2cov < lcutFW2),]
-
-
-plot(FN$f1cov~FN$pos,type="l", col="black")
-lines(FN$f2cov~FN$pos, col="blue")
-lines(FNcut$f1cov~FNcut$pos,type="l", col="red")
-lines(FNcut$f2cov~FNcut$pos, col="purple")
-lines(FNcut2$f1cov~FNcut2$pos,type="l", col="green")
-lines(FNcut2$f2cov~FNcut2$pos, col="orange")
-abline(h=324.0304)
-abline(h=207.0733)
-
-lines(FNcut2$f1reff*1250~FNcut2$pos,type="l", col="black")
-lines(FNcut2$f2reff*1250~FNcut2$pos, col="blue")
-
+FW_cutcutcov2 <- FW_cutcutcov[!(FW_cutcutcov$f1cov < cutlcutFW1 | FW_cutcutcov$f2cov < cutlcutFW2),]
 
 plot(FW$f1cov~FW$pos,type="l", col="black")
 lines(FW$f2cov~FW$pos, col="blue")
@@ -213,8 +201,20 @@ lines(FWcut2$f2cov~FWcut2$pos, col="orange")
 abline(h=303.5813)
 abline(h=280.8968)
 
-lines(FWcut2$f1altf*1250~FWcut2$pos, col="black", type="l")
+plot(FWcut2$f1altf*1250~FWcut2$pos, col="black", type="l")
 lines(FWcut2$f2altf*1250~FWcut2$pos, col="blue")
+
+plot(FW_cut$f1cov~FW_cut$pos,type="l", col="black")
+lines(FW_cut$f2cov~FW_cut$pos, col="blue")
+lines(FW_cutcutcov$f1cov~FW_cutcutcov$pos,type="l", col="red")
+lines(FW_cutcutcov$f2cov~FW_cutcutcov$pos, col="purple")
+lines(FW_cutcutcov2$f1cov~FW_cutcutcov2$pos,type="l", col="green")
+lines(FW_cutcutcov2$f2cov~FW_cutcutcov2$pos, col="orange")
+abline(h=303.5813)
+abline(h=280.8968)
+
+plot(FW_cutcutcov2$f1altf*1250~FW_cutcutcov2$pos, col="black", type="l")
+lines(FW_cutcutcov2$f2altf*1250~FW_cutcutcov2$pos, col="blue")
 
 ```
 Got rid of some crazy peaks and smoothed it out a bit?\
@@ -225,6 +225,7 @@ Then plot again with original (lightest), cut2 (darker) and cut3 (darkest).
 
 ```{r, echo=FALSE}
 FWcut3 <- FWcut2[-which(FWcut2$f1nref==0|FWcut2$f1nalt==0|FWcut2$f2nref==0|FWcut2$f2nalt==0),]
+FW_cutcut3 <- FW_cutcutcov2[-which(FW_cutcutcov2$f1nref==0|FW_cutcutcov2$f1nalt==0|FW_cutcutcov2$f2nref==0|FW_cutcutcov2$f2nalt==0),]
 plot(FW$f1altf~FW$pos, col="grey", type="l")
 lines(FW$f2altf~FW$pos, col="lightblue")
 lines(FWcut2$f1altf~FWcut2$pos, col="slategray", type="l")
@@ -232,13 +233,15 @@ lines(FWcut2$f2altf~FWcut2$pos, col="slateblue")
 lines(FWcut3$f1altf~FWcut3$pos, col="black", type="l")
 lines(FWcut3$f2altf~FWcut3$pos, col="blue")
 
-FNcut3 <- FNcut2[-which(FNcut2$f1nref==0|FNcut2$f1nalt==0|FNcut2$f2nref==0|FNcut2$f2nalt==0),]
-plot(FN$f1reff~FN$pos, col="grey", type="l")
-lines(FN$f2reff~FN$pos, col="lightblue")
-lines(FNcut2$f1reff~FNcut2$pos, col="slategray", type="l")
-lines(FNcut2$f2reff~FNcut2$pos, col="slateblue")
-lines(FNcut3$f1reff~FNcut3$pos, col="black", type="l")
-lines(FNcut3$f2reff~FNcut3$pos, col="blue")
+plot(FW_cut$f1altf~FW_cut$pos, col="grey", type="l")
+lines(FW_cut$f2altf~FW_cut$pos, col="lightblue")
+lines(FW_cutcutcov2$f1altf~FW_cutcutcov2$pos, col="slategray", type="l")
+lines(FW_cutcutcov2$f2altf~FW_cutcutcov2$pos, col="slateblue")
+lines(FW_cutcut3$f1altf~FW_cutcut3$pos, col="black", type="l")
+lines(FW_cutcut3$f2altf~FW_cutcut3$pos, col="blue")
+
+
+
 ```
 Still pretty crazy.\
 Now will trim SNPs that are quite different from the median around them. First, need to find out how big the region is. 
