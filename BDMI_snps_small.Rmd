@@ -117,8 +117,8 @@ FW$f2cov <- (as.numeric(FW$f2nref)+as.numeric(FW$f2nalt))
 
 Plot mapped to cerevisiae. f1altf in black, f2altf in blue.
 ```{r, echo=FALSE}
-plot(FW$f1altf~FW$pos, col="black", type="l")
-lines(FW$f2altf~FW$pos, col="blue")
+plot(FW$f1altf~FW$pos, col="blue", type="l")
+lines(FW$f2altf~FW$pos, col="black")
 ```
 
 Cut SNPs to those decided high qual
@@ -275,8 +275,34 @@ FWcut3$altf2 <- FWcut3$f2altf
 
 FNcut4 <- trimsnps_n(FNcut3, FNcut4, 10691,100)
 FWcut4 <- trimsnps_w(FWcut3, FWcut4, 10765,100)
+FW_cutcut4 <- trimsnps_w(FW_cutcut3, FW_cutcut4, 10765,100)
+```
+find 0.001 edge
+```{r}
+sumlo <- loess(FWcut4$f2altf+FWcut4$f1altf-0.5~FWcut4$pos, span=0.2)
+length(sumlo$fitted)
 ```
 
+```{r}
+7761*0.01
+```
+```{r}
+order(sumlo$fitted)[78]
+```
+```{r}
+sumlo$fitted[2895]
+```
+
+plot alone
+
+```{r}
+
+plot(FWcut4$f1altf~FWcut4$pos, col="blue", type="l")
+lines(FWcut4$f2altf~FWcut4$pos, col="black")
+lines(FWcut4$f2altf+FWcut4$f1altf-0.5~FWcut4$pos, col="pink")
+lines(sumlo$fitted~FWcut4$pos, col="red")
+abline(v=c(sumlo$x[which(sumlo$fitted<=0.3695023)]), lty=2)
+```
 
 Find out how many cut:
 ```{r, echo=TRUE}
@@ -381,14 +407,14 @@ Bottom 5% of sum of fits in dotted blue line.\
 Now plot with loess smoothing. Loess with span=0.25. Do for those mapped to cerevisiae.
 
 ```{r, echo=FALSE}
-lo1 <- loess(FWcut4$altf1~FWcut4$pos, span=0.25)
-lo2 <- loess(FWcut4$altf2~FWcut4$pos, span=0.25)
-plot(FWcut4$altf1~FWcut4$pos, type="l", ylim = c(0,1.2), xlim=c(58476,289967),col="black", ylab="freq par (mapped to cer)", xlab="position along chromosome")
-lines(lo1$fitted~FWcut4$pos, col='purple', lwd=2)
-lines(FWcut4$altf2~FWcut4$pos, col="black")
-lines(lo2$fitted~FWcut4$pos, col='purple', lwd=2)
+lo1 <- loess(FW_cutcut4$altf1~FW_cutcut4$pos, span=0.2)
+lo2 <- loess(FW_cutcut4$altf2~FW_cutcut4$pos, span=0.2)
+plot(FW_cutcut4$altf1~FW_cutcut4$pos, type="l", ylim = c(0,1.2), xlim=c(58476,289967),col="black", ylab="freq par (mapped to cer)", xlab="position along chromosome")
+lines(lo1$fitted~FW_cutcut4$pos, col='purple', lwd=2)
+lines(FW_cutcut4$altf2~FW_cutcut4$pos, col="black")
+lines(lo2$fitted~FW_cutcut4$pos, col='purple', lwd=2)
 fitsW <- (lo1$fitted+lo2$fitted)
-lines((fitsW-0.5)~FWcut4$pos, col="red")
+lines((fitsW-0.5)~FW_cutcut4$pos, col="red")
 abline(h=0.5, col="black", lty=2)
 
 #range for F -  YOL138C  to YOL024W is region, did transformations TAT2 (YOL020W) to PPM2? (YOL141W)
