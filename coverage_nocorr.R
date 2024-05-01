@@ -27,15 +27,6 @@ get_cov_gene <- function(genedatfr, colname.c, colname.p, coverage, chr){
   return(genedatfr)
 }
 ######load in files######
-#load in cer coverage
-cer <- read.table("coverage/cer.coverage",header=FALSE, sep="\t", na.strings="NA", dec=".", strip.white=TRUE)
-# renames the header
-cer <- rename(cer, c("Chr"=V1, "locus"=V2, "depth"=V3))
-
-#load in XVpar coverage
-XVpar <- read.table("coverage/XVpar.coverage",header=FALSE, sep="\t", na.strings="NA", dec=".", strip.white=TRUE)
-# renames the header
-XVpar <- rename(XVpar, c("Chr"=V1, "locus"=V2, "depth"=V3))
 
 #load in gene files
 genes.c <- read.csv("W303.genes.csv", head=TRUE)
@@ -2671,3 +2662,15 @@ plot(cer.c/(cer.c+cer.p),type="l",ylim=c(0,1))
 lines(IX.c/(IX.c+IX.p), col="blue")
 
 #gets a bit messy
+
+#############old##############
+#load in cer coverage
+cer <- read.table("coverage/cer.coverage",header=FALSE, sep="\t", na.strings="NA", dec=".", strip.white=TRUE)
+# renames the header
+cer <- rename(cer, c("Chr"=V1, "locus"=V2, "depth"=V3))
+
+#load in XVpar coverage
+XVpar <- read.table("coverage/XVpar.coverage",header=FALSE, sep="\t", na.strings="NA", dec=".", strip.white=TRUE)
+# renames the header
+XVpar <- rename(XVpar, c("Chr"=V1, "locus"=V2, "depth"=V3))
+
