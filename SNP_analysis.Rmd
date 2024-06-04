@@ -133,8 +133,7 @@ For N17 - (??) end to 41322\
 For W303 - 24534	to	62140\
 Go a bit outside (1kb on either end).
 
-######here#######
-
+######here########
 ```{r echo=FALSE}
 names(AN) <- c("chr", "pos", "id","ref","alt","qual","filter","info","format","a1n","a2n")
 names(AW) <- c("chr", "pos", "id","ref","alt","qual","filter","info","format","a1w","a2w")
